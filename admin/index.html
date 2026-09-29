@@ -416,12 +416,12 @@
 
           </div>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="freeSlotsCount">
             —
           </strong>
 
-          <span class="summary-description">
-            aguardando configuração
+          <span class="summary-description" id="freeSlotsDescription">
+            calculando disponibilidade
           </span>
 
         </article>
@@ -1881,7 +1881,25 @@ async function loadAgenda() {
     const nextDay = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), agendaDate.getDate() + 1);
     const nextDayISO = `${localISODate(nextDay)}T00:00:00-03:00`;
 
-    const [appointmentsResult, blocksResult, revenueResult] = await Promise.all([
+    const { data: availabilityService, error: availabilityServiceError } = await db
+      .from("servicos")
+      .select("id,nome,duracao_minutos")
+      .eq("ativo", true)
+      .not("duracao_minutos", "is", null)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (availabilityServiceError) throw availabilityServiceError;
+
+    const availabilityPromise = availabilityService
+      ? db.rpc("horarios_disponiveis", {
+          p_servico_id: availabilityService.id,
+          p_data: dateISO
+        })
+      : Promise.resolve({ data: [], error: null });
+
+    const [appointmentsResult, blocksResult, revenueResult, availabilityResult] = await Promise.all([
       db
         .from("agendamentos")
         .select("id,cliente_nome,cliente_telefone,data,hora_inicio,hora_fim,status,servico_id,servicos(nome,preco)")
@@ -1903,16 +1921,40 @@ async function loadAgenda() {
         .eq("profissional_id", professionalId)
         .eq("status", "concluido")
         .gte("data", rangeStart)
-        .lte("data", rangeEnd)
+        .lte("data", rangeEnd),
+
+      availabilityPromise
     ]);
 
     if (appointmentsResult.error) throw appointmentsResult.error;
     if (blocksResult.error) throw blocksResult.error;
     if (revenueResult.error) throw revenueResult.error;
+    if (availabilityResult.error) throw availabilityResult.error;
 
     const appointments = appointmentsResult.data || [];
     const blocks = blocksResult.data || [];
     const revenueAppointments = revenueResult.data || [];
+    const freeSlots = (availabilityResult.data || [])
+      .map(item => String(item.horario || "").slice(0, 5))
+      .filter(Boolean);
+
+    const freeSlotsCount = document.getElementById("freeSlotsCount");
+    const freeSlotsDescription = document.getElementById("freeSlotsDescription");
+
+    if (freeSlotsCount) freeSlotsCount.textContent = freeSlots.length;
+    if (freeSlotsDescription) {
+      if (!availabilityService) {
+        freeSlotsDescription.textContent = "nenhum serviço ativo para calcular";
+      } else if (!freeSlots.length) {
+        freeSlotsDescription.textContent = "nenhum horário disponível neste dia";
+      } else {
+        const preview = freeSlots.slice(0, 5).join(" · ");
+        const remaining = freeSlots.length - 5;
+        freeSlotsDescription.textContent = remaining > 0
+          ? `${preview} · +${remaining}`
+          : preview;
+      }
+    }
 
     const activeAppointments = appointments.filter(item => String(item.status).toLowerCase() !== "cancelado");
     const completed = appointments.filter(item => String(item.status).toLowerCase() === "concluido");
@@ -2032,6 +2074,10 @@ async function loadAgenda() {
 
   } catch (error) {
     console.error("Erro ao carregar agenda:", error);
+    const freeSlotsCount = document.getElementById("freeSlotsCount");
+    const freeSlotsDescription = document.getElementById("freeSlotsDescription");
+    if (freeSlotsCount) freeSlotsCount.textContent = "—";
+    if (freeSlotsDescription) freeSlotsDescription.textContent = "não foi possível calcular";
     list.innerHTML = `
       <div class="schedule-empty">
         <div class="empty-symbol">!</div>
