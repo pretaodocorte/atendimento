@@ -786,13 +786,14 @@
 
         <div class="card settings-card settings-panel" id="settingsDados">
           <div class="settings-title"><h3>Dados da barbearia</h3><p>Informações utilizadas no sistema e no agendamento.</p></div>
+          <div id="businessDataMessage" class="schedule-message hidden"></div>
           <div class="settings-form">
-            <div class="field full"><label>Nome da barbearia</label><input type="text" value="Pretão do Corte"></div>
-            <div class="field"><label>Responsável</label><input type="text" value="Kaique Vital"></div>
-            <div class="field"><label>WhatsApp</label><input type="text" value="(16) 99363-3521"></div>
-            <div class="field full"><label>Endereço</label><input type="text" value="R. Jorn. Cândido Mota Filho, 554 - Ribeirão Preto - SP"></div>
+            <div class="field full"><label>Nome da barbearia</label><input id="businessName" type="text" value="Pretão do Corte"></div>
+            <div class="field"><label>Responsável</label><input id="businessResponsible" type="text" value="Kaique Vital"></div>
+            <div class="field"><label>WhatsApp</label><input id="businessWhatsapp" type="text" value="(16) 99363-3521"></div>
+            <div class="field full"><label>Endereço</label><input id="businessAddress" type="text" value="R. Jorn. Cândido Mota Filho, 554 - Ribeirão Preto - SP"></div>
           </div>
-          <div class="settings-footer"><span>Configuração visual por enquanto.</span><button class="btn btn-primary" type="button">Salvar alterações</button></div>
+          <div class="settings-footer"><span>Esses dados ficam salvos no sistema.</span><button id="saveBusinessDataButton" class="btn btn-primary" type="button" onclick="saveBusinessData()">Salvar alterações</button></div>
         </div>
 
         <div class="card settings-card settings-panel hidden" id="settingsHorarios">
@@ -1336,6 +1337,97 @@ db.auth.onAuthStateChange((event) => {
 });
 
 /* ==========================================
+   CONFIGURAÇÕES - DADOS DA BARBEARIA
+=========================================== */
+let businessDataLoaded = false;
+let businessConfigId = null;
+
+function setBusinessDataMessage(message = "", type = "info") {
+  const box = document.getElementById("businessDataMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
+
+function formatBusinessWhatsapp(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  return value || "";
+}
+
+async function loadBusinessData() {
+  setBusinessDataMessage("Carregando dados...", "info");
+  try {
+    const { data, error } = await db
+      .from("configuracoes")
+      .select("id,nome_barbearia,responsavel,whatsapp,endereco")
+      .order("id")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Configuração da barbearia não encontrada.");
+
+    businessConfigId = data.id;
+    document.getElementById("businessName").value = data.nome_barbearia || "";
+    document.getElementById("businessResponsible").value = data.responsavel || "";
+    document.getElementById("businessWhatsapp").value = formatBusinessWhatsapp(data.whatsapp);
+    document.getElementById("businessAddress").value = data.endereco || "";
+    businessDataLoaded = true;
+    setBusinessDataMessage("");
+  } catch (error) {
+    console.error(error);
+    setBusinessDataMessage("Não foi possível carregar os dados da barbearia.", "error");
+  }
+}
+
+async function saveBusinessData() {
+  const button = document.getElementById("saveBusinessDataButton");
+  const nome = document.getElementById("businessName").value.trim();
+  const responsavel = document.getElementById("businessResponsible").value.trim();
+  const whatsapp = document.getElementById("businessWhatsapp").value.replace(/\D/g, "");
+  const endereco = document.getElementById("businessAddress").value.trim();
+
+  if (!nome) return setBusinessDataMessage("Informe o nome da barbearia.", "error");
+  if (!responsavel) return setBusinessDataMessage("Informe o responsável.", "error");
+  if (whatsapp && whatsapp.length !== 11) return setBusinessDataMessage("Informe um WhatsApp válido com DDD.", "error");
+  if (!endereco) return setBusinessDataMessage("Informe o endereço.", "error");
+
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  setBusinessDataMessage("Salvando alterações...", "info");
+  try {
+    const payload = {
+      nome_barbearia: nome,
+      responsavel,
+      whatsapp,
+      endereco,
+      updated_at: new Date().toISOString()
+    };
+
+    let error;
+    if (businessConfigId) {
+      ({ error } = await db.from("configuracoes").update(payload).eq("id", businessConfigId));
+    } else {
+      const result = await db.from("configuracoes").insert(payload).select("id").single();
+      error = result.error;
+      if (result.data) businessConfigId = result.data.id;
+    }
+    if (error) throw error;
+
+    document.getElementById("businessWhatsapp").value = formatBusinessWhatsapp(whatsapp);
+    const sidebarBrand = document.querySelector(".brand-name strong");
+    if (sidebarBrand) sidebarBrand.textContent = nome;
+    businessDataLoaded = true;
+    setBusinessDataMessage("Alterações salvas com sucesso.", "success");
+  } catch (error) {
+    console.error(error);
+    setBusinessDataMessage("Não foi possível salvar as alterações. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar alterações";
+  }
+}
+
+/* ==========================================
    CONFIGURAÇÕES - HORÁRIOS
 =========================================== */
 let currentProfessionalId = null;
@@ -1759,6 +1851,7 @@ function goToPage(page) {
 
   if (page === "servicos" && !servicesLoaded) loadServices();
   if (page === "clientes" && !clientsLoaded) loadClients();
+  if (page === "configuracoes" && !businessDataLoaded) loadBusinessData();
   if (page === "agenda") loadAgenda();
 
   window.scrollTo({
