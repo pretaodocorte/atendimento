@@ -63,6 +63,10 @@
     .agenda-action-btn.danger{border-color:#efc5bf;color:#8d2f24}
     .agenda-action-btn:disabled{opacity:.5;cursor:wait}
     @media(max-width:680px){.agenda-item-real{grid-template-columns:64px 1fr auto}.agenda-service-real{grid-column:2/4}.agenda-actions-real{grid-column:1/4;justify-content:flex-start}.agenda-real-list{padding:5px 15px 18px}}
+    .agenda-block-item{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:16px;align-items:center;padding:15px 20px;border-top:1px solid #eadfd5;background:#fff8f3}
+    .agenda-block-item:first-child{border-top:0}.agenda-block-time{font-size:16px;font-weight:900;color:#8d2f24}.agenda-block-data strong{display:block;font-size:11px;color:#4b3020}.agenda-block-data span{display:block;margin-top:4px;font-size:9px;color:#8b7d72}.agenda-block-tag{display:inline-block;margin-top:6px;padding:5px 8px;border-radius:100px;background:#fff0ee;color:#8d2f24;font-size:7px;font-weight:900;text-transform:uppercase}
+    .financial-periods{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16)}.financial-periods .day-stat{margin-top:8px}
+    @media(max-width:680px){.agenda-block-item{grid-template-columns:70px 1fr}.agenda-block-item .agenda-actions-real{grid-column:1/3}}
   </style>
 </head>
 
@@ -499,8 +503,20 @@
             </div>
 
             <div class="day-stat">
-              <span>Faturamento</span>
+              <span>Receita do dia</span>
               <strong id="dayRevenue">R$ 0,00</strong>
+            </div>
+
+            <div class="financial-periods">
+              <div class="day-stat">
+                <span>Receita da semana</span>
+                <strong id="weekRevenue">R$ 0,00</strong>
+              </div>
+
+              <div class="day-stat">
+                <span>Receita do mês</span>
+                <strong id="monthRevenue">R$ 0,00</strong>
+              </div>
             </div>
 
           </div>
@@ -1767,35 +1783,95 @@ async function loadAgenda() {
     <div class="schedule-empty">
       <div class="empty-symbol">◷</div>
       <h3>Carregando agenda...</h3>
-      <p>Buscando os agendamentos no sistema.</p>
+      <p>Buscando os agendamentos e bloqueios no sistema.</p>
     </div>`;
 
   const dateISO = localISODate(agendaDate);
 
   try {
-    const { data, error } = await db
-      .from("agendamentos")
-      .select("id,cliente_nome,cliente_telefone,data,hora_inicio,hora_fim,status,servico_id,servicos(nome,preco)")
-      .eq("data", dateISO)
-      .order("hora_inicio", { ascending: true });
+    const professionalId = await getProfessionalId();
 
-    if (error) throw error;
+    const weekStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), agendaDate.getDate());
+    const dayOfWeek = weekStart.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    weekStart.setDate(weekStart.getDate() + distanceToMonday);
 
-    const appointments = data || [];
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const monthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
+    const monthEnd = new Date(agendaDate.getFullYear(), agendaDate.getMonth() + 1, 0);
+
+    const rangeStart = localISODate(monthStart < weekStart ? monthStart : weekStart);
+    const rangeEnd = localISODate(monthEnd > weekEnd ? monthEnd : weekEnd);
+
+    const dayStartISO = `${dateISO}T00:00:00-03:00`;
+    const nextDay = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), agendaDate.getDate() + 1);
+    const nextDayISO = `${localISODate(nextDay)}T00:00:00-03:00`;
+
+    const [appointmentsResult, blocksResult, revenueResult] = await Promise.all([
+      db
+        .from("agendamentos")
+        .select("id,cliente_nome,cliente_telefone,data,hora_inicio,hora_fim,status,servico_id,servicos(nome,preco)")
+        .eq("profissional_id", professionalId)
+        .eq("data", dateISO)
+        .order("hora_inicio", { ascending: true }),
+
+      db
+        .from("bloqueios")
+        .select("id,inicio,fim,motivo")
+        .eq("profissional_id", professionalId)
+        .gte("inicio", dayStartISO)
+        .lt("inicio", nextDayISO)
+        .order("inicio", { ascending: true }),
+
+      db
+        .from("agendamentos")
+        .select("data,status,servicos(preco)")
+        .eq("profissional_id", professionalId)
+        .eq("status", "concluido")
+        .gte("data", rangeStart)
+        .lte("data", rangeEnd)
+    ]);
+
+    if (appointmentsResult.error) throw appointmentsResult.error;
+    if (blocksResult.error) throw blocksResult.error;
+    if (revenueResult.error) throw revenueResult.error;
+
+    const appointments = appointmentsResult.data || [];
+    const blocks = blocksResult.data || [];
+    const revenueAppointments = revenueResult.data || [];
+
     const activeAppointments = appointments.filter(item => String(item.status).toLowerCase() !== "cancelado");
     const completed = appointments.filter(item => String(item.status).toLowerCase() === "concluido");
     const forecastAppointments = appointments.filter(item => {
       const status = String(item.status || "").toLowerCase();
       return status === "confirmado" || status === "concluido";
     });
+
     const forecast = forecastAppointments.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
     const revenue = completed.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    const weekStartISO = localISODate(weekStart);
+    const weekEndISO = localISODate(weekEnd);
+    const monthStartISO = localISODate(monthStart);
+    const monthEndISO = localISODate(monthEnd);
+
+    const weekRevenue = revenueAppointments
+      .filter(item => item.data >= weekStartISO && item.data <= weekEndISO)
+      .reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    const monthRevenue = revenueAppointments
+      .filter(item => item.data >= monthStartISO && item.data <= monthEndISO)
+      .reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
 
     document.getElementById("todayAppointmentsCount").textContent = activeAppointments.length;
     document.getElementById("todayRevenueForecast").textContent = moneyBR(forecast);
     document.getElementById("dayTotalAppointments").textContent = activeAppointments.length;
     document.getElementById("dayCompletedAppointments").textContent = completed.length;
     document.getElementById("dayRevenue").textContent = moneyBR(revenue);
+    document.getElementById("weekRevenue").textContent = moneyBR(weekRevenue);
+    document.getElementById("monthRevenue").textContent = moneyBR(monthRevenue);
 
     const nowTime = new Date().toTimeString().slice(0,5);
     const isToday = dateISO === localISODate(new Date());
@@ -1809,12 +1885,61 @@ async function loadAgenda() {
     document.getElementById("nextClientDescription").textContent =
       next ? next.cliente_nome : "nenhum atendimento próximo";
 
-    if (!appointments.length) {
+    const appointmentsHtml = appointments.length ? `
+      <div class="agenda-real-list">${appointments.map(item => `
+        <div class="agenda-item-real">
+          <div class="agenda-time-real">${escapeHtml(String(item.hora_inicio || "").slice(0,5))}</div>
+          <div class="agenda-client-real">
+            <strong>${escapeHtml(item.cliente_nome || "Cliente")}</strong>
+            <span>${escapeHtml(phoneBR(item.cliente_telefone))}</span>
+          </div>
+          <div class="agenda-service-real">
+            <strong>${escapeHtml(item.servicos?.nome || "Serviço")}</strong>
+            <span>${moneyBR(item.servicos?.preco)}</span>
+          </div>
+          <span class="agenda-status-real ${escapeHtml(String(item.status || "").toLowerCase())}">
+            ${escapeHtml(statusLabel(item.status))}
+          </span>
+          <div class="agenda-actions-real">
+            ${String(item.status).toLowerCase() === "confirmado" ? `
+              <button class="agenda-action-btn success" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'concluido', this)">Concluir</button>
+              <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'faltou', this)">Faltou</button>
+              <button class="agenda-action-btn danger" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'cancelado', this)">Cancelar</button>
+            ` : `
+              <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'confirmado', this)">Reabrir</button>
+            `}
+          </div>
+        </div>
+      `).join("")}</div>` : "";
+
+    const blocksHtml = blocks.length ? `
+      <div>
+        ${blocks.map(block => {
+          const start = new Date(block.inicio);
+          const finish = new Date(block.fim);
+          const startLabel = start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          const endLabel = finish.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          return `
+            <div class="agenda-block-item">
+              <div class="agenda-block-time">${escapeHtml(startLabel)}</div>
+              <div class="agenda-block-data">
+                <strong>Horário bloqueado · ${escapeHtml(startLabel)} às ${escapeHtml(endLabel)}</strong>
+                <span>${escapeHtml(block.motivo || "Sem motivo informado")}</span>
+                <span class="agenda-block-tag">Bloqueado</span>
+              </div>
+              <div class="agenda-actions-real">
+                <button class="agenda-action-btn danger" type="button" onclick="unblockTime(${Number(block.id)}, this)">Desbloquear</button>
+              </div>
+            </div>`;
+        }).join("")}
+      </div>` : "";
+
+    if (!appointments.length && !blocks.length) {
       list.innerHTML = `
         <div class="schedule-empty">
           <div class="empty-symbol">✂</div>
           <h3>Sua agenda está livre</h3>
-          <p>Não há agendamentos registrados para este dia.</p>
+          <p>Não há agendamentos ou bloqueios registrados para este dia.</p>
           <button class="text-button" onclick="openExtraHoursModal()">+ Adicionar horário extra</button>
         </div>`;
       document.getElementById("daySummaryTitle").textContent = "Dia tranquilo por enquanto.";
@@ -1824,34 +1949,14 @@ async function loadAgenda() {
 
     document.getElementById("daySummaryTitle").textContent =
       activeAppointments.length === 1 ? "1 atendimento na agenda." : `${activeAppointments.length} atendimentos na agenda.`;
-    document.getElementById("daySummaryText").textContent =
-      completed.length ? `${completed.length} atendimento(s) concluído(s).` : "Os agendamentos estão organizados por horário.";
 
-    list.innerHTML = `<div class="agenda-real-list">${appointments.map(item => `
-      <div class="agenda-item-real">
-        <div class="agenda-time-real">${escapeHtml(String(item.hora_inicio || "").slice(0,5))}</div>
-        <div class="agenda-client-real">
-          <strong>${escapeHtml(item.cliente_nome || "Cliente")}</strong>
-          <span>${escapeHtml(phoneBR(item.cliente_telefone))}</span>
-        </div>
-        <div class="agenda-service-real">
-          <strong>${escapeHtml(item.servicos?.nome || "Serviço")}</strong>
-          <span>${moneyBR(item.servicos?.preco)}</span>
-        </div>
-        <span class="agenda-status-real ${escapeHtml(String(item.status || "").toLowerCase())}">
-          ${escapeHtml(statusLabel(item.status))}
-        </span>
-        <div class="agenda-actions-real">
-          ${String(item.status).toLowerCase() === "confirmado" ? `
-            <button class="agenda-action-btn success" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'concluido', this)">Concluir</button>
-            <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'faltou', this)">Faltou</button>
-            <button class="agenda-action-btn danger" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'cancelado', this)">Cancelar</button>
-          ` : `
-            <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'confirmado', this)">Reabrir</button>
-          `}
-        </div>
-      </div>
-    `).join("")}</div>`;
+    const summaryParts = [];
+    if (completed.length) summaryParts.push(`${completed.length} atendimento(s) concluído(s)`);
+    if (blocks.length) summaryParts.push(`${blocks.length} bloqueio(s) ativo(s)`);
+    document.getElementById("daySummaryText").textContent =
+      summaryParts.length ? `${summaryParts.join(" · ")}.` : "Os horários do dia estão organizados abaixo.";
+
+    list.innerHTML = appointmentsHtml + blocksHtml;
 
   } catch (error) {
     console.error("Erro ao carregar agenda:", error);
@@ -1890,6 +1995,35 @@ async function updateAppointmentStatus(appointmentId, newStatus, button) {
     console.error("Erro ao atualizar agendamento:", error);
     alert("Não foi possível atualizar o agendamento. Tente novamente.");
     buttons.forEach(item => item.disabled = false);
+  }
+}
+
+
+
+async function unblockTime(blockId, button) {
+  if (!confirm("Deseja desbloquear este horário? Ele poderá voltar a aparecer como disponível no site.")) return;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Removendo...";
+  }
+
+  try {
+    const { error } = await db
+      .from("bloqueios")
+      .delete()
+      .eq("id", blockId);
+
+    if (error) throw error;
+
+    await loadAgenda();
+  } catch (error) {
+    console.error("Erro ao desbloquear horário:", error);
+    alert("Não foi possível desbloquear o horário. Tente novamente.");
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Desbloquear";
+    }
   }
 }
 
