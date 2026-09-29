@@ -514,7 +514,9 @@
             <input
               id="nome"
               type="text"
-              placeholder="Digite seu nome"
+              placeholder="Nome e sobrenome"
+              autocomplete="name"
+              maxlength="80"
             >
 
           </div>
@@ -529,7 +531,10 @@
             <input
               id="telefone"
               type="tel"
+              inputmode="numeric"
               placeholder="(16) 99999-9999"
+              autocomplete="tel"
+              maxlength="15"
             >
 
           </div>
@@ -544,9 +549,8 @@
           </strong>
 
           <p>
-            Nesta versão inicial o agendamento
-            ainda é uma demonstração. Em seguida
-            conectaremos o sistema ao banco de dados.
+            Informe seu nome e sobrenome e um WhatsApp válido.
+            Confira os dados antes de confirmar o horário.
           </p>
 
         </div>
@@ -1268,6 +1272,27 @@ function updateStep() {
 
 
 /* =========================
+   MÁSCARA DO WHATSAPP
+========================= */
+
+const phoneInput = document.getElementById("telefone");
+
+phoneInput.addEventListener("input", () => {
+  let digits = phoneInput.value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length > 7) {
+    phoneInput.value = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  } else if (digits.length > 2) {
+    phoneInput.value = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  } else if (digits.length) {
+    phoneInput.value = `(${digits}`;
+  } else {
+    phoneInput.value = "";
+  }
+});
+
+
+/* =========================
    CONFIRMAR
 ========================= */
 
@@ -1287,18 +1312,29 @@ function confirmBooking() {
       .trim();
 
 
-  if (!name || !phone) {
-
-    alert(
-      "Preencha seu nome e WhatsApp."
+  const nameParts = name.split(/\s+/).filter(Boolean);
+  const validName =
+    nameParts.length >= 2 &&
+    nameParts.every(part =>
+      part.length >= 2 && /^[A-Za-zÀ-ÖØ-öø-ÿ'’\-]+$/.test(part)
     );
 
+  if (!validName) {
+    alert("Digite seu nome e sobrenome corretamente.");
+    document.getElementById("nome").focus();
     return;
-
   }
 
+  const phoneDigits = phone.replace(/\D/g, "");
+  const validPhone = /^[1-9]{2}9\d{8}$/.test(phoneDigits);
 
-  booking.name = name;
+  if (!validPhone) {
+    alert("Digite um WhatsApp válido com DDD. Exemplo: (16) 99999-9999.");
+    document.getElementById("telefone").focus();
+    return;
+  }
+
+  booking.name = nameParts.join(" ");
   booking.phone = phone;
 
 
