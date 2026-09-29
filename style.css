@@ -1,0 +1,165 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #E4D7C3; /* marrom claro */
+  color: #3E2C22; /* marrom escuro */
+}
+
+/* HEADER */
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background-color: #F5E1C9; /* tom da logo */
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  gap: 10px;
+}
+
+header .logo {
+  width: 200px;
+}
+
+header nav ul {
+  display: flex;
+  gap: 20px;
+  list-style: none;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+header nav ul li a {
+  text-decoration: none;
+  color: #3E2C22;
+  font-weight: bold;
+  padding: 5px 10px;
+  transition: 0.3s;
+}
+
+header nav ul li a:hover {
+  background-color: #DCC9B6;
+  border-radius: 5px;
+}
+
+/* HERO */
+.hero {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.hero h1 {
+  font-size: 2.8em;
+  margin-bottom: 10px;
+}
+
+.hero p {
+  font-size: 1.3em;
+  margin-bottom: 20px;
+}
+
+/* BOTÃO PADRÃO */
+.btn {
+  display: inline-block;
+  padding: 12px 25px;
+  background-color: #3E2C22;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: 0.3s;
+}
+
+.btn:hover {
+  background-color: #5A4430;
+}
+
+/* SEÇÕES GERAIS */
+section {
+  padding: 50px 20px;
+  text-align: center;
+}
+
+/* SERVIÇOS */
+.servicos-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.servicos-list li {
+  background-color: #F5E1C9;
+  padding: 15px 20px;
+  border-radius: 8px;
+  min-width: 150px;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+
+.servicos-list li:hover {
+  background-color: #E0CBA4;
+  cursor: pointer;
+}
+
+/* GALERIA */
+.galeria-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.galeria-grid img {
+  width: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+
+.galeria-grid img:hover {
+  transform: scale(1.05);
+}
+
+/* LOCALIZAÇÃO */
+#localizacao {
+  background-color: #F5E1C9;
+}
+
+#localizacao p {
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+#localizacao iframe {
+  margin-top: 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* FOOTER */
+footer {
+  text-align: center;
+  padding: 20px;
+  background-color: #F5E1C9;
+  color: #3E2C22;
+}
+
+/* RESPONSIVO */
+@media (max-width: 600px) {
+  header nav ul {
+    flex-direction: column;
+  }
+
+  .servicos-list {
+    flex-direction: column;
+  }
+}
