@@ -48,6 +48,15 @@
     .service-message{margin:0 0 18px;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.service-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.service-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.service-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
     .service-empty-real{padding:54px 24px;text-align:center;color:#8b7d72}.service-empty-real strong{display:block;color:#2f2119;font-size:18px;margin-bottom:7px}
     .status.inactive-status{background:#f1efec;color:#786e67}.status.inactive-status i{background:#9a918a}
+    .agenda-real-list{padding:8px 20px 20px}
+    .agenda-item-real{display:grid;grid-template-columns:82px minmax(0,1.4fr) minmax(120px,.8fr) auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}
+    .agenda-time-real{font-size:18px;font-weight:900;color:var(--brown)}
+    .agenda-client-real strong,.agenda-service-real strong{display:block;font-size:11px;color:var(--text)}
+    .agenda-client-real span,.agenda-service-real span{display:block;margin-top:4px;font-size:8px;color:var(--muted)}
+    .agenda-status-real{padding:6px 9px;border-radius:100px;font-size:7px;font-weight:900;text-transform:uppercase;background:#f3eee8;color:var(--brown)}
+    .agenda-status-real.concluido{background:#eaf6ef;color:#2c8057}
+    .agenda-status-real.cancelado,.agenda-status-real.faltou{background:#fff0ee;color:#8d2f24}
+    @media(max-width:680px){.agenda-item-real{grid-template-columns:64px 1fr auto}.agenda-service-real{grid-column:2/4}.agenda-real-list{padding:5px 15px 18px}}
   </style>
 </head>
 
@@ -321,7 +330,7 @@
 
           </div>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="todayAppointmentsCount">
             0
           </strong>
 
@@ -346,11 +355,11 @@
 
           </div>
 
-          <strong class="summary-number small">
+          <strong class="summary-number small" id="nextClientTime">
             Livre
           </strong>
 
-          <span class="summary-description">
+          <span class="summary-description" id="nextClientDescription">
             nenhum atendimento próximo
           </span>
 
@@ -371,7 +380,7 @@
 
           </div>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="todayRevenueForecast">
             R$ 0
           </strong>
 
@@ -419,11 +428,11 @@
 
             <div>
 
-              <span class="section-eyebrow">
+              <span class="section-eyebrow" id="agendaDayLabel">
                 HOJE
               </span>
 
-              <h3>
+              <h3 id="agendaDateTitle">
                 Agenda do dia
               </h3>
 
@@ -432,243 +441,26 @@
 
             <div class="date-navigation">
 
-              <button>‹</button>
+              <button type="button" onclick="changeAgendaDay(-1)">‹</button>
 
-              <button class="today-button">
+              <button class="today-button" type="button" onclick="goAgendaToday()">
                 Hoje
               </button>
 
-              <button>›</button>
+              <button type="button" onclick="changeAgendaDay(1)">›</button>
 
             </div>
 
           </div>
-
-
-          <div class="schedule-empty">
-
-            <div class="empty-symbol">
-              ✂
+          <div id="agendaList">
+            <div class="schedule-empty">
+              <div class="empty-symbol">✂</div>
+              <h3>Carregando agenda...</h3>
+              <p>Buscando os agendamentos no sistema.</p>
             </div>
-
-            <h3>
-              Sua agenda está livre
-            </h3>
-
-            <p>
-              Quando houver agendamentos,
-              eles aparecerão aqui em ordem
-              de horário.
-            </p>
-
-            <button
-              class="text-button"
-              onclick="openAppointmentModal()"
-            >
-              + Adicionar agendamento
-            </button>
-
           </div>
 
         </section>
-
-
-        <!-- PAINEL LATERAL -->
-
-        <aside class="day-panel">
-
-          <div class="day-card dark-card">
-
-            <span class="section-eyebrow gold">
-              RESUMO
-            </span>
-
-            <h3>
-              Dia tranquilo por enquanto.
-            </h3>
-
-            <p>
-              Nenhum atendimento foi
-              registrado para hoje.
-            </p>
-
-            <div class="day-separator"></div>
-
-            <div class="day-stat">
-
-              <span>Atendimentos</span>
-              <strong>0</strong>
-
-            </div>
-
-            <div class="day-stat">
-
-              <span>Concluídos</span>
-              <strong>0</strong>
-
-            </div>
-
-            <div class="day-stat">
-
-              <span>Faturamento</span>
-              <strong>R$ 0,00</strong>
-
-            </div>
-
-          </div>
-
-
-          <div class="day-card">
-
-            <span class="section-eyebrow">
-              ATALHOS
-            </span>
-
-            <button
-              class="quick-action"
-              onclick="goToPage('servicos')"
-            >
-              <span>✂</span>
-
-              <div>
-                <strong>Gerenciar serviços</strong>
-                <small>Preços e duração</small>
-              </div>
-
-              <b>›</b>
-            </button>
-
-
-            <button
-              class="quick-action"
-              onclick="goToPage('clientes')"
-            >
-              <span>♟</span>
-
-              <div>
-                <strong>Ver clientes</strong>
-                <small>Histórico e contatos</small>
-              </div>
-
-              <b>›</b>
-            </button>
-
-          </div>
-
-        </aside>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==========================================
-         SERVIÇOS
-    =========================================== -->
-
-    <section
-      class="page"
-      id="servicos"
-    >
-
-      <div class="page-intro">
-
-        <div>
-
-          <span class="section-eyebrow">
-            CATÁLOGO
-          </span>
-
-          <h2>
-            Serviços
-          </h2>
-
-          <p>
-            Controle os serviços oferecidos,
-            preços, duração e disponibilidade.
-          </p>
-
-        </div>
-
-
-        <button
-          class="btn btn-primary"
-          onclick="openServiceModal()"
-        >
-          <span>＋</span>
-          Novo serviço
-        </button>
-
-      </div>
-
-
-      <div class="services-overview">
-
-        <div>
-          <span>Serviços ativos</span>
-          <strong id="activeServicesCount">0</strong>
-        </div>
-
-        <div>
-          <span>Preço médio</span>
-          <strong id="averageServicePrice">R$ 0,00</strong>
-        </div>
-
-        <div>
-          <span>Mais agendado</span>
-          <strong>—</strong>
-        </div>
-
-      </div>
-
-
-      <div class="card">
-
-        <div class="table-header">
-
-          <div>
-            <h3>Seus serviços</h3>
-            <p>
-              Edite ou adicione serviços
-              oferecidos aos clientes.
-            </p>
-          </div>
-
-          <div class="search">
-            <span>⌕</span>
-
-            <input
-              type="text"
-              placeholder="Buscar serviço"
-              id="serviceSearch"
-            >
-          </div>
-
-        </div>
-
-
-        <div id="serviceMessage" class="service-message hidden"></div>
-
-        <div class="service-table">
-
-          <div class="service-table-head">
-
-            <span>SERVIÇO</span>
-            <span>PREÇO</span>
-            <span>DURAÇÃO</span>
-            <span>STATUS</span>
-            <span></span>
-
-          </div>
-
-
-          <div id="servicesList"></div>
-
-        </div>
-
-      </div>
-
-    </section>
 
 
     <!-- ==========================================
@@ -1345,6 +1137,7 @@ function showAdmin(name) {
   document.getElementById("sidebarAdminName").textContent = safeName;
   const firstName = safeName.trim().split(/\s+/)[0];
   document.getElementById("welcomeTitle").textContent = `Olá, ${firstName}.`;
+  loadAgenda();
 }
 
 async function validateAdministrator(user) {
@@ -1757,6 +1550,7 @@ function goToPage(page) {
 
 
   if (page === "servicos" && !servicesLoaded) loadServices();
+  if (page === "agenda") loadAgenda();
 
   window.scrollTo({
     top: 0,
@@ -1788,6 +1582,153 @@ document.getElementById(
 ).textContent =
   formattedDate.charAt(0).toUpperCase()
   + formattedDate.slice(1);
+
+
+/* ==========================================
+   AGENDA - SUPABASE
+=========================================== */
+
+let agendaDate = new Date();
+
+function localISODate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function phoneBR(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  return value || "Sem telefone";
+}
+
+function statusLabel(status) {
+  const labels = {
+    confirmado: "Confirmado",
+    concluido: "Concluído",
+    cancelado: "Cancelado",
+    faltou: "Faltou"
+  };
+  return labels[String(status || "").toLowerCase()] || status || "—";
+}
+
+function setAgendaDateHeader() {
+  const today = localISODate(new Date());
+  const selected = localISODate(agendaDate);
+  const label = document.getElementById("agendaDayLabel");
+  label.textContent = selected === today ? "HOJE" : "AGENDA";
+
+  document.getElementById("agendaDateTitle").textContent =
+    agendaDate.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long"
+    }).replace(/^./, c => c.toUpperCase());
+}
+
+function changeAgendaDay(amount) {
+  agendaDate.setDate(agendaDate.getDate() + amount);
+  loadAgenda();
+}
+
+function goAgendaToday() {
+  agendaDate = new Date();
+  loadAgenda();
+}
+
+async function loadAgenda() {
+  const list = document.getElementById("agendaList");
+  if (!list) return;
+
+  setAgendaDateHeader();
+  list.innerHTML = `
+    <div class="schedule-empty">
+      <div class="empty-symbol">◷</div>
+      <h3>Carregando agenda...</h3>
+      <p>Buscando os agendamentos no sistema.</p>
+    </div>`;
+
+  const dateISO = localISODate(agendaDate);
+
+  try {
+    const { data, error } = await db
+      .from("agendamentos")
+      .select("id,cliente_nome,cliente_telefone,data,hora_inicio,hora_fim,status,servico_id,servicos(nome,preco)")
+      .eq("data", dateISO)
+      .order("hora_inicio", { ascending: true });
+
+    if (error) throw error;
+
+    const appointments = data || [];
+    const activeAppointments = appointments.filter(item => String(item.status).toLowerCase() !== "cancelado");
+    const completed = appointments.filter(item => String(item.status).toLowerCase() === "concluido");
+    const forecast = activeAppointments.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+    const revenue = completed.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    document.getElementById("todayAppointmentsCount").textContent = activeAppointments.length;
+    document.getElementById("todayRevenueForecast").textContent = moneyBR(forecast);
+    document.getElementById("dayTotalAppointments").textContent = activeAppointments.length;
+    document.getElementById("dayCompletedAppointments").textContent = completed.length;
+    document.getElementById("dayRevenue").textContent = moneyBR(revenue);
+
+    const nowTime = new Date().toTimeString().slice(0,5);
+    const isToday = dateISO === localISODate(new Date());
+    const next = activeAppointments.find(item =>
+      String(item.status).toLowerCase() === "confirmado" &&
+      (!isToday || String(item.hora_inicio).slice(0,5) >= nowTime)
+    );
+
+    document.getElementById("nextClientTime").textContent =
+      next ? String(next.hora_inicio).slice(0,5) : "Livre";
+    document.getElementById("nextClientDescription").textContent =
+      next ? next.cliente_nome : "nenhum atendimento próximo";
+
+    if (!appointments.length) {
+      list.innerHTML = `
+        <div class="schedule-empty">
+          <div class="empty-symbol">✂</div>
+          <h3>Sua agenda está livre</h3>
+          <p>Não há agendamentos registrados para este dia.</p>
+          <button class="text-button" onclick="openAppointmentModal()">+ Adicionar agendamento</button>
+        </div>`;
+      document.getElementById("daySummaryTitle").textContent = "Dia tranquilo por enquanto.";
+      document.getElementById("daySummaryText").textContent = "Nenhum atendimento foi registrado para este dia.";
+      return;
+    }
+
+    document.getElementById("daySummaryTitle").textContent =
+      activeAppointments.length === 1 ? "1 atendimento na agenda." : `${activeAppointments.length} atendimentos na agenda.`;
+    document.getElementById("daySummaryText").textContent =
+      completed.length ? `${completed.length} atendimento(s) concluído(s).` : "Os agendamentos estão organizados por horário.";
+
+    list.innerHTML = `<div class="agenda-real-list">${appointments.map(item => `
+      <div class="agenda-item-real">
+        <div class="agenda-time-real">${escapeHtml(String(item.hora_inicio || "").slice(0,5))}</div>
+        <div class="agenda-client-real">
+          <strong>${escapeHtml(item.cliente_nome || "Cliente")}</strong>
+          <span>${escapeHtml(phoneBR(item.cliente_telefone))}</span>
+        </div>
+        <div class="agenda-service-real">
+          <strong>${escapeHtml(item.servicos?.nome || "Serviço")}</strong>
+          <span>${moneyBR(item.servicos?.preco)}</span>
+        </div>
+        <span class="agenda-status-real ${escapeHtml(String(item.status || "").toLowerCase())}">
+          ${escapeHtml(statusLabel(item.status))}
+        </span>
+      </div>
+    `).join("")}</div>`;
+
+  } catch (error) {
+    console.error("Erro ao carregar agenda:", error);
+    list.innerHTML = `
+      <div class="schedule-empty">
+        <div class="empty-symbol">!</div>
+        <h3>Não foi possível carregar a agenda</h3>
+        <p>Atualize a página e tente novamente.</p>
+      </div>`;
+  }
+}
 
 
 /* ==========================================
