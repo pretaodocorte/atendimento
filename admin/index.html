@@ -307,10 +307,10 @@
 
           <button
             class="btn btn-primary"
-            onclick="openAppointmentModal()"
+            onclick="openExtraHoursModal()"
           >
             <span>＋</span>
-            Novo agendamento
+            Adicionar horário
           </button>
 
         </div>
@@ -1007,15 +1007,15 @@
 
 
 <!-- ==========================================
-     MODAL NOVO AGENDAMENTO
+     MODAL HORÁRIO EXTRA
 =========================================== -->
 
 <div
   class="modal-overlay"
-  id="appointmentModal"
+  id="extraHoursModal"
 >
 
-  <div class="modal">
+  <div class="modal small-modal">
 
     <div class="modal-top">
 
@@ -1026,88 +1026,55 @@
         </span>
 
         <h2>
-          Novo agendamento
+          Adicionar horário
         </h2>
 
       </div>
 
       <button
         class="modal-close"
-        onclick="closeAppointmentModal()"
+        onclick="closeExtraHoursModal()"
       >
         ×
       </button>
 
     </div>
 
-
     <div class="modal-body">
 
-      <div class="field full">
-
-        <label>
-          Nome do cliente
-        </label>
-
-        <input
-          type="text"
-          placeholder="Nome do cliente"
-        >
-
-      </div>
-
+      <p style="margin:0 0 20px;color:#786a61;line-height:1.55;font-size:14px;">
+        Abra um período extra somente nesta data. Os horários serão divididos automaticamente conforme a duração do serviço.
+      </p>
 
       <div class="field full">
 
         <label>
-          WhatsApp
+          Data
         </label>
 
-        <input
-          type="tel"
-          placeholder="(16) 99999-9999"
-        >
+        <input id="extraHoursDate" type="date">
 
       </div>
-
-
-      <div class="field full">
-
-        <label>
-          Serviço
-        </label>
-
-        <select>
-
-          <option>
-            Selecione o serviço
-          </option>
-
-          <option>
-            Corte masculino
-          </option>
-
-        </select>
-
-      </div>
-
 
       <div class="form-two">
 
         <div class="field">
 
-          <label>Data</label>
+          <label>
+            Início
+          </label>
 
-          <input type="date">
+          <input id="extraHoursStart" type="time">
 
         </div>
 
-
         <div class="field">
 
-          <label>Horário</label>
+          <label>
+            Final
+          </label>
 
-          <input type="time">
+          <input id="extraHoursEnd" type="time">
 
         </div>
 
@@ -1115,21 +1082,23 @@
 
     </div>
 
+    <div id="extraHoursMessage" class="schedule-message hidden"></div>
 
     <div class="modal-footer">
 
       <button
         class="btn btn-secondary"
-        onclick="closeAppointmentModal()"
+        onclick="closeExtraHoursModal()"
       >
         Cancelar
       </button>
 
       <button
         class="btn btn-primary"
-        onclick="demoSaveAppointment()"
+        id="saveExtraHoursButton"
+        onclick="saveExtraHours()"
       >
-        Criar agendamento
+        Adicionar horário
       </button>
 
     </div>
@@ -1846,7 +1815,7 @@ async function loadAgenda() {
           <div class="empty-symbol">✂</div>
           <h3>Sua agenda está livre</h3>
           <p>Não há agendamentos registrados para este dia.</p>
-          <button class="text-button" onclick="openAppointmentModal()">+ Adicionar agendamento</button>
+          <button class="text-button" onclick="openExtraHoursModal()">+ Adicionar horário extra</button>
         </div>`;
       document.getElementById("daySummaryTitle").textContent = "Dia tranquilo por enquanto.";
       document.getElementById("daySummaryText").textContent = "Nenhum atendimento foi registrado para este dia.";
@@ -1926,24 +1895,83 @@ async function updateAppointmentStatus(appointmentId, newStatus, button) {
 
 
 /* ==========================================
-   AGENDAMENTO
+   HORÁRIOS EXTRAS
 =========================================== */
 
-function openAppointmentModal() {
-
-  openModal(
-    "appointmentModal"
-  );
-
+function setExtraHoursMessage(message = "", type = "info") {
+  const box = document.getElementById("extraHoursMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
 }
 
+function openExtraHoursModal() {
+  document.getElementById("extraHoursDate").value = localISODate(agendaDate);
+  document.getElementById("extraHoursStart").value = "";
+  document.getElementById("extraHoursEnd").value = "";
+  setExtraHoursMessage("");
+  openModal("extraHoursModal");
+}
 
-function closeAppointmentModal() {
+function closeExtraHoursModal() {
+  closeModal("extraHoursModal");
+}
 
-  closeModal(
-    "appointmentModal"
-  );
+async function saveExtraHours() {
+  const date = document.getElementById("extraHoursDate").value;
+  const start = document.getElementById("extraHoursStart").value;
+  const end = document.getElementById("extraHoursEnd").value;
+  const button = document.getElementById("saveExtraHoursButton");
 
+  if (!date) return setExtraHoursMessage("Escolha a data.", "error");
+  if (!start || !end) return setExtraHoursMessage("Informe o horário inicial e final.", "error");
+  if (end <= start) return setExtraHoursMessage("O horário final precisa ser depois do horário inicial.", "error");
+
+  const today = localISODate(new Date());
+  if (date < today) return setExtraHoursMessage("Não é possível adicionar horário em uma data passada.", "error");
+
+  button.disabled = true;
+  button.textContent = "Adicionando...";
+  setExtraHoursMessage("Salvando horário extra...", "info");
+
+  try {
+    const professionalId = await getProfessionalId();
+
+    const { data: existing, error: existingError } = await db
+      .from("horarios_extras")
+      .select("id,hora_inicio,hora_fim")
+      .eq("profissional_id", professionalId)
+      .eq("data", date);
+
+    if (existingError) throw existingError;
+
+    const duplicate = (existing || []).some(item =>
+      String(item.hora_inicio || "").slice(0,5) === start &&
+      String(item.hora_fim || "").slice(0,5) === end
+    );
+
+    if (duplicate) {
+      return setExtraHoursMessage("Esse período extra já foi adicionado para esta data.", "error");
+    }
+
+    const { error } = await db.from("horarios_extras").insert({
+      profissional_id: professionalId,
+      data: date,
+      hora_inicio: start,
+      hora_fim: end
+    });
+
+    if (error) throw error;
+
+    closeExtraHoursModal();
+    await loadAgenda();
+    alert("Horário extra adicionado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao adicionar horário extra:", error);
+    setExtraHoursMessage("Não foi possível adicionar o horário. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Adicionar horário";
+  }
 }
 
 
@@ -2095,19 +2123,6 @@ document
     );
 
   });
-
-
-/* ==========================================
-   DEMONSTRAÇÃO
-=========================================== */
-
-function demoSaveAppointment() {
-
-  alert(
-    "O cadastro visual está funcionando. A gravação no banco será conectada ao Supabase."
-  );
-
-}
 
 
 /* ESC fecha modal */
