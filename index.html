@@ -51,6 +51,22 @@
     .client-account-card span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#88796e}
     .client-account-card strong{display:block;margin-top:3px;color:#241912}
     .client-account-actions{display:grid;gap:10px}
+    .client-appointments{margin:18px 0;display:grid;gap:10px}
+    .client-appointments-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .client-appointments-head strong{font-size:15px;color:#241912}
+    .client-appointments-list{display:grid;gap:10px}
+    .client-appointment{padding:14px;border:1px solid #e5d9cf;border-radius:14px;background:#fff}
+    .client-appointment-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .client-appointment-main strong{display:block;color:#241912;font-size:15px}
+    .client-appointment-main span{display:block;margin-top:4px;color:#75685f;font-size:13px}
+    .client-appointment-status{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:6px 8px;border-radius:999px;background:#efe5dc;color:#5a4b40;white-space:nowrap}
+    .client-appointment-status.confirmado{background:#eaf5ed;color:#28633a}
+    .client-appointment-status.concluido{background:#edf2f7;color:#40556b}
+    .client-appointment-status.cancelado,.client-appointment-status.faltou{background:#fff0ee;color:#8d2f24}
+    .client-appointment-actions{margin-top:10px;display:flex;gap:8px}
+    .client-appointment-actions button{border:0;background:transparent;padding:0;color:#8d2f24;font-weight:800;cursor:pointer}
+    .client-appointments-empty{padding:14px;border-radius:12px;background:#f2e9e1;color:#75685f;font-size:13px;line-height:1.45}
+    .client-loading{opacity:.7}
     @media(max-width:760px){.nav-client-area{gap:6px}.nav-client-btn{padding-left:12px;padding-right:12px}.nav-book{display:none}.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.gallery-item{border-radius:12px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -981,6 +997,8 @@ function showClientAccount() {
 
   document.getElementById("clientNavLabel").textContent =
     clientAccount?.nome ? `Olá, ${clientAccount.nome.split(/\s+/)[0]}` : "Minha conta";
+
+  loadMyAppointments();
 }
 
 function goToBookingFromAccount() {
@@ -1092,18 +1110,7 @@ async function loginClient() {
 }
 
 async function logoutClient() {
-  if (clientSession) {
-    try {
-      const tokenHash = await sha256Hex(clientSession);
-
-      await db
-        .from("cliente_sessoes")
-        .delete()
-        .eq("token_hash", tokenHash);
-    } catch (error) {
-      console.warn("Não foi possível encerrar a sessão no servidor.", error);
-    }
-  }
+  const token = clientSession;
 
   clientSession = null;
   clientAccount = null;
@@ -1114,29 +1121,51 @@ async function logoutClient() {
   document.getElementById("clientNavLabel").textContent = "Entrar";
   closeClientAuth();
   updateBookingClientFields();
+
+  if (token) {
+    try {
+      await db.rpc("logout_cliente", { p_token: token });
+    } catch (error) {
+      console.warn("Não foi possível encerrar a sessão no servidor.", error);
+    }
+  }
 }
 
-async function sha256Hex(value) {
-  const bytes = new TextEncoder().encode(value);
-  const hash = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(hash))
-    .map(byte => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function restoreClientSession() {
+async function restoreClientSession() {
   try {
     const saved = JSON.parse(localStorage.getItem(CLIENT_SESSION_KEY) || "null");
 
-    if (!saved?.token || !saved?.cliente?.id) {
+    if (!saved?.token) {
+      updateBookingClientFields();
+      return;
+    }
+
+    const { data, error } = await db.rpc("cliente_atual", {
+      p_token: saved.token
+    });
+
+    if (error || !data?.autenticado) {
+      localStorage.removeItem(CLIENT_SESSION_KEY);
+      clientSession = null;
+      clientAccount = null;
+      booking.clientId = null;
       updateBookingClientFields();
       return;
     }
 
     clientSession = saved.token;
-    clientAccount = saved.cliente;
+    clientAccount = {
+      id: Number(data.cliente_id),
+      nome: data.nome,
+      whatsapp: data.whatsapp
+    };
 
-    booking.clientId = Number(clientAccount.id);
+    localStorage.setItem(CLIENT_SESSION_KEY, JSON.stringify({
+      token: clientSession,
+      cliente: clientAccount
+    }));
+
+    booking.clientId = clientAccount.id;
     booking.name = clientAccount.nome;
     booking.phone = clientAccount.whatsapp;
 
@@ -1145,8 +1174,113 @@ function restoreClientSession() {
 
     updateBookingClientFields();
   } catch (error) {
-    console.warn("Sessão local inválida.", error);
+    console.warn("Não foi possível validar a sessão.", error);
     localStorage.removeItem(CLIENT_SESSION_KEY);
+    clientSession = null;
+    clientAccount = null;
+    booking.clientId = null;
+    updateBookingClientFields();
+  }
+}
+
+function clientStatusLabel(status) {
+  const labels = {
+    confirmado: "Confirmado",
+    concluido: "Concluído",
+    cancelado: "Cancelado",
+    faltou: "Faltou"
+  };
+  return labels[String(status || "").toLowerCase()] || status || "—";
+}
+
+function formatBookingDate(dateValue) {
+  if (!dateValue) return "—";
+  const [year, month, day] = String(dateValue).split("-");
+  return `${day}/${month}/${year}`;
+}
+
+async function loadMyAppointments() {
+  const list = document.getElementById("clientAppointmentsList");
+  if (!list || !clientSession) return;
+
+  list.innerHTML = `<div class="client-appointments-empty client-loading">Carregando seus agendamentos...</div>`;
+
+  try {
+    const { data, error } = await db.rpc("meus_agendamentos", {
+      p_token: clientSession
+    });
+
+    if (error) throw error;
+
+    const appointments = data || [];
+
+    if (!appointments.length) {
+      list.innerHTML = `<div class="client-appointments-empty">Você ainda não possui agendamentos vinculados a esta conta.</div>`;
+      return;
+    }
+
+    const today = new Date();
+    const todayISO = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+    const nowTime = `${String(today.getHours()).padStart(2,"0")}:${String(today.getMinutes()).padStart(2,"0")}`;
+
+    list.innerHTML = appointments.map(item => {
+      const status = String(item.status || "").toLowerCase();
+      const time = String(item.hora_inicio || "").slice(0,5);
+      const canCancel = status === "confirmado" &&
+        (String(item.data) > todayISO || (String(item.data) === todayISO && time > nowTime));
+
+      return `
+        <div class="client-appointment">
+          <div class="client-appointment-top">
+            <div class="client-appointment-main">
+              <strong>${escapeHtml(item.servico_nome || "Serviço")}</strong>
+              <span>${escapeHtml(formatBookingDate(item.data))} às ${escapeHtml(time)} · ${formatPrice(item.preco || 0)}</span>
+            </div>
+            <span class="client-appointment-status ${escapeHtml(status)}">${escapeHtml(clientStatusLabel(status))}</span>
+          </div>
+          ${canCancel ? `
+            <div class="client-appointment-actions">
+              <button type="button" onclick="cancelMyAppointment(${Number(item.id)}, this)">Cancelar agendamento</button>
+            </div>` : ""}
+        </div>`;
+    }).join("");
+  } catch (error) {
+    console.error("Erro ao carregar agendamentos do cliente:", error);
+    list.innerHTML = `<div class="client-appointments-empty">Não foi possível carregar seus agendamentos agora.</div>`;
+  }
+}
+
+async function cancelMyAppointment(appointmentId, button) {
+  if (!clientSession) return;
+  if (!confirm("Deseja cancelar este agendamento? O horário voltará a ficar disponível.")) return;
+
+  const original = button?.textContent || "Cancelar agendamento";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Cancelando...";
+  }
+
+  try {
+    const { data, error } = await db.rpc("cancelar_meu_agendamento", {
+      p_token: clientSession,
+      p_agendamento_id: appointmentId
+    });
+
+    if (error) throw error;
+    if (!data) throw new Error("Não foi possível cancelar o agendamento.");
+
+    await loadMyAppointments();
+    if (booking.serviceId && booking.dateISO) {
+      const [y,m,d] = booking.dateISO.split("-").map(Number);
+      await renderTimes(new Date(y, m - 1, d, 12, 0, 0));
+    }
+  } catch (error) {
+    console.error("Erro ao cancelar agendamento:", error);
+    alert(error?.message || "Não foi possível cancelar o agendamento.");
+    if (button) {
+      button.disabled = false;
+      button.textContent = original;
+    }
   }
 }
 
@@ -1720,22 +1854,12 @@ async function confirmBooking() {
       p_cliente_nome: booking.name,
       p_cliente_telefone: booking.phone,
       p_data: booking.dateISO,
-      p_hora_inicio: booking.time
+      p_hora_inicio: booking.time,
+      p_cliente_token: clientSession || null
     });
 
     if (error) throw error;
     booking.agendamentoId = data;
-
-    if (booking.clientId) {
-      const { error: linkError } = await db
-        .from("agendamentos")
-        .update({ cliente_id: booking.clientId })
-        .eq("id", booking.agendamentoId);
-
-      if (linkError) {
-        console.warn("Agendamento criado, mas não foi possível vincular o cliente.", linkError);
-      }
-    }
   } catch (error) {
     console.error("Erro ao criar agendamento:", error);
     const message = error?.message || "Não foi possível confirmar o agendamento.";
@@ -1876,6 +2000,8 @@ function resetBooking() {
       "telefone"
     )
     .value = "";
+
+  updateBookingClientFields();
 
 
   document
@@ -2060,6 +2186,15 @@ function resetBooking() {
         <div>
           <span>WhatsApp</span>
           <strong id="clientAccountPhone">—</strong>
+        </div>
+      </div>
+
+      <div class="client-appointments">
+        <div class="client-appointments-head">
+          <strong>Meus agendamentos</strong>
+        </div>
+        <div class="client-appointments-list" id="clientAppointmentsList">
+          <div class="client-appointments-empty">Carregando seus agendamentos...</div>
         </div>
       </div>
 
