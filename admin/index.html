@@ -36,6 +36,15 @@
     .auth-loading{text-align:center}.auth-loading img{width:150px;margin-bottom:22px}.auth-spinner{width:34px;height:34px;border:3px solid #ddcdbd;border-top-color:#4b3020;border-radius:50%;margin:0 auto 14px;animation:authspin .8s linear infinite}@keyframes authspin{to{transform:rotate(360deg)}}
     .logout-btn{border:0;background:transparent;color:inherit;cursor:pointer;font-size:18px;padding:8px;border-radius:8px}.logout-btn:hover{background:rgba(0,0,0,.06)}
     @media(max-width:780px){.auth-screen{padding:0;background:#fffaf4}.auth-shell{min-height:100vh;border:0;border-radius:0;display:block;box-shadow:none}.auth-brand{display:none}.auth-form-area{min-height:100vh;padding:32px 24px}.auth-mobile-logo{display:block}.auth-box h2{text-align:center;font-size:28px}.auth-desc{text-align:center}.auth-box>.section-eyebrow{display:block;text-align:center}}
+
+    .settings-panel.hidden{display:none!important}
+    .hours-list{display:flex;flex-direction:column;border-top:1px solid #eee3d8;margin-top:24px}
+    .hours-row{display:grid;grid-template-columns:minmax(170px,1fr) 56px minmax(250px,1.25fr);gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid #eee3d8}
+    .hours-day{display:flex;flex-direction:column;gap:4px}.hours-day strong{font-size:14px;color:#251b15}.hours-day span{font-size:12px;color:#8b7d72}
+    .hours-times{display:flex;align-items:center;justify-content:flex-end;gap:10px}.hours-times input{width:118px;height:42px;border:1px solid #ddd0c3;border-radius:10px;padding:0 10px;background:#fff;color:#2f2119}.hours-times input:disabled{background:#f5f2ee;color:#aaa;cursor:not-allowed}.hours-times span{font-size:12px;color:#8b7d72}
+    .hours-switch{position:relative;width:44px;height:24px;display:block}.hours-switch input{opacity:0;width:0;height:0}.hours-switch span{position:absolute;inset:0;background:#d8d1ca;border-radius:30px;cursor:pointer;transition:.2s}.hours-switch span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:.2s}.hours-switch input:checked+span{background:#4b3020}.hours-switch input:checked+span:before{transform:translateX(20px)}
+    .schedule-message{margin:18px 0 0;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.schedule-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.schedule-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.schedule-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
+    @media(max-width:760px){.hours-row{grid-template-columns:1fr 50px}.hours-times{grid-column:1/-1;justify-content:flex-start}.hours-times input{flex:1;width:auto}.settings-footer{gap:14px;align-items:flex-start}}
   </style>
 </head>
 
@@ -841,164 +850,63 @@
          CONFIGURAÇÕES
     =========================================== -->
 
-    <section
-      class="page"
-      id="configuracoes"
-    >
-
+    <section class="page" id="configuracoes">
       <div class="page-intro">
-
         <div>
-
-          <span class="section-eyebrow">
-            PREFERÊNCIAS
-          </span>
-
-          <h2>
-            Configurações
-          </h2>
-
-          <p>
-            Configure os dados e o
-            funcionamento da barbearia.
-          </p>
-
+          <span class="section-eyebrow">PREFERÊNCIAS</span>
+          <h2>Configurações</h2>
+          <p>Configure os dados e o funcionamento da barbearia.</p>
         </div>
-
       </div>
-
 
       <div class="settings-layout">
-
         <div class="settings-menu">
-
-          <button class="settings-item active">
-            <span>▣</span>
-
-            <div>
-              <strong>Dados da barbearia</strong>
-              <small>Informações gerais</small>
-            </div>
+          <button class="settings-item active" data-settings="dados" onclick="openSettingsTab('dados')">
+            <span>▣</span><div><strong>Dados da barbearia</strong><small>Informações gerais</small></div>
           </button>
-
-
-          <button class="settings-item">
-            <span>◷</span>
-
-            <div>
-              <strong>Horários</strong>
-              <small>Dias e funcionamento</small>
-            </div>
+          <button class="settings-item" data-settings="horarios" onclick="openSettingsTab('horarios')">
+            <span>◷</span><div><strong>Horários</strong><small>Dias e funcionamento</small></div>
           </button>
-
-
-          <button class="settings-item">
-            <span>♟</span>
-
-            <div>
-              <strong>Profissionais</strong>
-              <small>Equipe e agenda</small>
-            </div>
+          <button class="settings-item" data-settings="profissionais" onclick="openSettingsTab('profissionais')">
+            <span>♟</span><div><strong>Profissionais</strong><small>Equipe e agenda</small></div>
           </button>
-
         </div>
 
-
-        <div class="card settings-card">
-
-          <div class="settings-title">
-
-            <h3>
-              Dados da barbearia
-            </h3>
-
-            <p>
-              Informações utilizadas
-              no sistema e no agendamento.
-            </p>
-
-          </div>
-
-
+        <div class="card settings-card settings-panel" id="settingsDados">
+          <div class="settings-title"><h3>Dados da barbearia</h3><p>Informações utilizadas no sistema e no agendamento.</p></div>
           <div class="settings-form">
-
-            <div class="field full">
-
-              <label>
-                Nome da barbearia
-              </label>
-
-              <input
-                type="text"
-                value="Pretão do Corte"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label>
-                Responsável
-              </label>
-
-              <input
-                type="text"
-                value="Kaique Vital"
-              >
-
-            </div>
-
-
-            <div class="field">
-
-              <label>
-                WhatsApp
-              </label>
-
-              <input
-                type="text"
-                value="(16) 99363-3521"
-              >
-
-            </div>
-
-
-            <div class="field full">
-
-              <label>
-                Endereço
-              </label>
-
-              <input
-                type="text"
-                value="R. Jorn. Cândido Mota Filho, 554 - Ribeirão Preto - SP"
-              >
-
-            </div>
-
+            <div class="field full"><label>Nome da barbearia</label><input type="text" value="Pretão do Corte"></div>
+            <div class="field"><label>Responsável</label><input type="text" value="Kaique Vital"></div>
+            <div class="field"><label>WhatsApp</label><input type="text" value="(16) 99363-3521"></div>
+            <div class="field full"><label>Endereço</label><input type="text" value="R. Jorn. Cândido Mota Filho, 554 - Ribeirão Preto - SP"></div>
           </div>
-
-
-          <div class="settings-footer">
-
-            <span>
-              As alterações serão conectadas
-              ao banco de dados posteriormente.
-            </span>
-
-            <button class="btn btn-primary">
-              Salvar alterações
-            </button>
-
-          </div>
-
+          <div class="settings-footer"><span>Configuração visual por enquanto.</span><button class="btn btn-primary" type="button">Salvar alterações</button></div>
         </div>
 
+        <div class="card settings-card settings-panel hidden" id="settingsHorarios">
+          <div class="settings-title">
+            <h3>Dias e horários de funcionamento</h3>
+            <p>Ative somente os dias em que Kaique atende e informe o horário de abertura e encerramento.</p>
+          </div>
+          <div id="scheduleMessage" class="schedule-message hidden"></div>
+          <div class="hours-list" id="hoursList">
+            <div class="hours-row" data-day="1"><div class="hours-day"><strong>Segunda-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="2"><div class="hours-day"><strong>Terça-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="3"><div class="hours-day"><strong>Quarta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="4"><div class="hours-day"><strong>Quinta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="5"><div class="hours-day"><strong>Sexta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="6"><div class="hours-day"><strong>Sábado</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="0"><div class="hours-day"><strong>Domingo</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+          </div>
+          <div class="settings-footer"><span>Esses horários serão usados para montar a agenda disponível aos clientes.</span><button id="saveHoursButton" class="btn btn-primary" type="button" onclick="saveBusinessHours()">Salvar horários</button></div>
+        </div>
+
+        <div class="card settings-card settings-panel hidden" id="settingsProfissionais">
+          <div class="settings-title"><h3>Profissionais</h3><p>Essa área será conectada na próxima etapa.</p></div>
+          <div class="large-empty"><div class="empty-symbol">♟</div><h3>Kaique Vital</h3><p>O profissional já está cadastrado. Depois adicionaremos aqui a edição da equipe e agenda individual.</p></div>
+        </div>
       </div>
-
     </section>
-
   </main>
 
 </div>
@@ -1541,6 +1449,104 @@ document.getElementById("mobileLogoutButton").addEventListener("click", logoutAd
 db.auth.onAuthStateChange((event) => {
   if (event === "SIGNED_OUT") showLogin();
 });
+
+/* ==========================================
+   CONFIGURAÇÕES - HORÁRIOS
+=========================================== */
+let currentProfessionalId = null;
+let hoursLoaded = false;
+
+function openSettingsTab(tab) {
+  document.querySelectorAll(".settings-item[data-settings]").forEach(button => {
+    button.classList.toggle("active", button.dataset.settings === tab);
+  });
+  document.querySelectorAll(".settings-panel").forEach(panel => panel.classList.add("hidden"));
+  const panels = { dados: "settingsDados", horarios: "settingsHorarios", profissionais: "settingsProfissionais" };
+  document.getElementById(panels[tab]).classList.remove("hidden");
+  if (tab === "horarios" && !hoursLoaded) loadBusinessHours();
+}
+
+function setScheduleMessage(message = "", type = "info") {
+  const box = document.getElementById("scheduleMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
+
+function updateDayRow(row) {
+  const enabled = row.querySelector(".day-enabled").checked;
+  row.querySelector(".start-time").disabled = !enabled;
+  row.querySelector(".end-time").disabled = !enabled;
+  row.querySelector(".day-status").textContent = enabled ? "Aberto" : "Fechado";
+}
+
+document.querySelectorAll(".hours-row").forEach(row => {
+  row.querySelector(".day-enabled").addEventListener("change", () => updateDayRow(row));
+});
+
+async function getProfessionalId() {
+  if (currentProfessionalId) return currentProfessionalId;
+  const { data, error } = await db.from("profissionais").select("id,nome").eq("ativo", true).order("id").limit(1).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Nenhum profissional ativo foi encontrado.");
+  currentProfessionalId = data.id;
+  return currentProfessionalId;
+}
+
+async function loadBusinessHours() {
+  setScheduleMessage("Carregando horários...", "info");
+  try {
+    const professionalId = await getProfessionalId();
+    const { data, error } = await db.from("horarios_funcionamento").select("dia_semana,hora_inicio,hora_fim,ativo").eq("profissional_id", professionalId).order("dia_semana");
+    if (error) throw error;
+    document.querySelectorAll(".hours-row").forEach(row => {
+      const found = (data || []).find(item => Number(item.dia_semana) === Number(row.dataset.day) && item.ativo);
+      const checkbox = row.querySelector(".day-enabled");
+      checkbox.checked = Boolean(found);
+      row.querySelector(".start-time").value = found ? String(found.hora_inicio).slice(0,5) : "";
+      row.querySelector(".end-time").value = found ? String(found.hora_fim).slice(0,5) : "";
+      updateDayRow(row);
+    });
+    hoursLoaded = true;
+    setScheduleMessage(data && data.length ? "Horários carregados do sistema." : "Nenhum horário cadastrado ainda. Ative os dias de atendimento e informe os horários.", "info");
+  } catch (error) {
+    console.error(error);
+    setScheduleMessage("Não foi possível carregar os horários.", "error");
+  }
+}
+
+async function saveBusinessHours() {
+  const button = document.getElementById("saveHoursButton");
+  const rows = [...document.querySelectorAll(".hours-row")];
+  const payload = [];
+  for (const row of rows) {
+    if (!row.querySelector(".day-enabled").checked) continue;
+    const start = row.querySelector(".start-time").value;
+    const end = row.querySelector(".end-time").value;
+    if (!start || !end) return setScheduleMessage(`Preencha o início e o fim de ${row.querySelector("strong").textContent}.`, "error");
+    if (end <= start) return setScheduleMessage(`O horário final de ${row.querySelector("strong").textContent} precisa ser depois do horário inicial.`, "error");
+    payload.push({ dia_semana: Number(row.dataset.day), hora_inicio: start, hora_fim: end, ativo: true });
+  }
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  setScheduleMessage("Salvando horários...", "info");
+  try {
+    const professionalId = await getProfessionalId();
+    const { error: deleteError } = await db.from("horarios_funcionamento").delete().eq("profissional_id", professionalId);
+    if (deleteError) throw deleteError;
+    if (payload.length) {
+      const { error: insertError } = await db.from("horarios_funcionamento").insert(payload.map(item => ({ ...item, profissional_id: professionalId })));
+      if (insertError) throw insertError;
+    }
+    hoursLoaded = true;
+    setScheduleMessage("Horários salvos com sucesso.", "success");
+  } catch (error) {
+    console.error(error);
+    setScheduleMessage("Não foi possível salvar os horários. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar horários";
+  }
+}
 
 /* ==========================================
    NAVEGAÇÃO
