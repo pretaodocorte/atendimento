@@ -1296,7 +1296,7 @@ phoneInput.addEventListener("input", () => {
    CONFIRMAR
 ========================= */
 
-function confirmBooking() {
+async function confirmBooking() {
 
   const name =
     document
@@ -1336,6 +1336,41 @@ function confirmBooking() {
 
   booking.name = nameParts.join(" ");
   booking.phone = phone;
+
+  if (!booking.serviceId || !booking.dateISO || !booking.time) {
+    alert("Revise o serviço, a data e o horário antes de confirmar.");
+    return;
+  }
+
+  const confirmButton = document.querySelector('#step4 .btn.btn-dark');
+  const originalButtonText = confirmButton ? confirmButton.innerText : "Confirmar horário";
+
+  if (confirmButton) {
+    confirmButton.disabled = true;
+    confirmButton.innerText = "Confirmando...";
+  }
+
+  try {
+    const { data, error } = await db.rpc("criar_agendamento", {
+      p_servico_id: booking.serviceId,
+      p_cliente_nome: booking.name,
+      p_cliente_telefone: booking.phone,
+      p_data: booking.dateISO,
+      p_hora_inicio: booking.time
+    });
+
+    if (error) throw error;
+    booking.agendamentoId = data;
+  } catch (error) {
+    console.error("Erro ao criar agendamento:", error);
+    const message = error?.message || "Não foi possível confirmar o agendamento.";
+    alert(message);
+    if (confirmButton) {
+      confirmButton.disabled = false;
+      confirmButton.innerText = originalButtonText;
+    }
+    return;
+  }
 
 
   document
@@ -1429,7 +1464,9 @@ function resetBooking() {
     serviceId: null,
     serviceDuration: null,
     date: "",
+    dateISO: "",
     time: "",
+    agendamentoId: null,
     name: "",
     phone: ""
   };
