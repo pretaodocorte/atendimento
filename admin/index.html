@@ -9,11 +9,85 @@
   <title>Painel | Pretão do Corte</title>
 
   <link rel="stylesheet" href="admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .hidden{display:none!important}
+    .auth-screen{min-height:100vh;background:#f4eadc;color:#2f2119;display:grid;place-items:center;padding:24px;font-family:Arial,sans-serif}
+    .auth-shell{width:min(1080px,100%);min-height:640px;background:#fffaf4;border:1px solid rgba(75,48,32,.12);border-radius:28px;overflow:hidden;display:grid;grid-template-columns:1.05fr .95fr;box-shadow:0 28px 80px rgba(48,31,21,.14)}
+    .auth-brand{background:#1b1714;color:#fff;padding:56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+    .auth-brand:after{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:rgba(190,145,91,.10);right:-130px;bottom:-130px}
+    .auth-brand img{width:170px;max-height:120px;object-fit:contain;object-position:left center;margin-bottom:52px}
+    .auth-kicker{display:block;color:#c99a63;font-size:12px;font-weight:800;letter-spacing:.18em;margin-bottom:16px}
+    .auth-brand h1{font-size:clamp(34px,4vw,58px);line-height:1.02;margin:0 0 18px;max-width:560px}
+    .auth-brand p{color:#cfc6be;font-size:17px;line-height:1.6;max-width:470px;margin:0}
+    .auth-credit{font-size:12px;color:#8f847c;position:relative;z-index:1}.auth-credit strong{color:#d9c0a2}
+    .auth-form-area{padding:64px;display:flex;align-items:center}
+    .auth-box{width:100%;max-width:390px;margin:auto}
+    .auth-mobile-logo{display:none;text-align:center;margin-bottom:28px}.auth-mobile-logo img{width:130px}
+    .auth-box h2{font-size:32px;margin:7px 0 10px;color:#2f2119}.auth-desc{margin:0 0 32px;color:#786a61;line-height:1.55}
+    .auth-box label{display:block;font-size:13px;font-weight:800;margin:0 0 8px;color:#4b3020}
+    .auth-box input{width:100%;height:52px;border:1px solid #d9cbbd;border-radius:12px;padding:0 14px;background:#fff;color:#2f2119;font-size:15px;outline:none;box-sizing:border-box}
+    .auth-box input:focus{border-color:#9a6c42;box-shadow:0 0 0 3px rgba(154,108,66,.10)}
+    .auth-field{margin-bottom:18px}.auth-password{position:relative}.auth-password input{padding-right:72px}.auth-password button{position:absolute;right:8px;top:8px;height:36px;border:0;background:#f3e8d7;border-radius:9px;padding:0 12px;color:#4b3020;font-weight:800;cursor:pointer}
+    .auth-submit{width:100%;height:54px;border:0;border-radius:12px;background:#4b3020;color:#fff;font-weight:800;font-size:15px;cursor:pointer;margin-top:8px;transition:.2s}.auth-submit:hover{transform:translateY(-1px);background:#382319}.auth-submit:disabled{opacity:.65;cursor:wait;transform:none}
+    .auth-error{display:none;background:#fff0ee;border:1px solid #efc5bf;color:#8d2f24;border-radius:10px;padding:11px 12px;font-size:13px;margin:4px 0 10px}.auth-error.show{display:block}
+    .auth-secure{margin-top:20px;text-align:center;color:#8c7d72;font-size:12px}.auth-secure b{color:#56825b}
+    .auth-loading{text-align:center}.auth-loading img{width:150px;margin-bottom:22px}.auth-spinner{width:34px;height:34px;border:3px solid #ddcdbd;border-top-color:#4b3020;border-radius:50%;margin:0 auto 14px;animation:authspin .8s linear infinite}@keyframes authspin{to{transform:rotate(360deg)}}
+    .logout-btn{border:0;background:transparent;color:inherit;cursor:pointer;font-size:18px;padding:8px;border-radius:8px}.logout-btn:hover{background:rgba(0,0,0,.06)}
+    @media(max-width:780px){.auth-screen{padding:0;background:#fffaf4}.auth-shell{min-height:100vh;border:0;border-radius:0;display:block;box-shadow:none}.auth-brand{display:none}.auth-form-area{min-height:100vh;padding:32px 24px}.auth-mobile-logo{display:block}.auth-box h2{text-align:center;font-size:28px}.auth-desc{text-align:center}.auth-box>.section-eyebrow{display:block;text-align:center}}
+  </style>
 </head>
 
 <body>
 
-<div class="app">
+<div id="loadingScreen" class="auth-screen">
+  <div class="auth-loading">
+    <img src="../logo.png" alt="Pretão do Corte">
+    <div class="auth-spinner"></div>
+    <div>Carregando painel...</div>
+  </div>
+</div>
+
+<div id="loginScreen" class="auth-screen hidden">
+  <div class="auth-shell">
+    <section class="auth-brand">
+      <div>
+        <img src="../logo.png" alt="Pretão do Corte">
+        <span class="auth-kicker">ÁREA ADMINISTRATIVA</span>
+        <h1>Gestão simples. Barbearia organizada.</h1>
+        <p>Agenda, serviços e clientes em um só lugar, com acesso exclusivo para a administração.</p>
+      </div>
+      <div class="auth-credit">Sistema desenvolvido por <strong>Harri Novaes Digital</strong></div>
+    </section>
+    <section class="auth-form-area">
+      <div class="auth-box">
+        <div class="auth-mobile-logo"><img src="../logo.png" alt="Pretão do Corte"></div>
+        <span class="section-eyebrow">BEM-VINDO</span>
+        <h2>Entrar no painel</h2>
+        <p class="auth-desc">Use o e-mail e a senha cadastrados para acessar a administração.</p>
+        <form id="loginForm">
+          <div class="auth-field">
+            <label for="loginEmail">E-mail</label>
+            <input id="loginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required>
+          </div>
+          <div class="auth-field">
+            <label for="loginPassword">Senha</label>
+            <div class="auth-password">
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
+              <button id="togglePassword" type="button">Ver</button>
+            </div>
+          </div>
+          <div id="loginError" class="auth-error"></div>
+          <button id="loginButton" class="auth-submit" type="submit">Entrar no painel</button>
+        </form>
+        <div class="auth-secure"><b>●</b> Acesso protegido pelo Supabase</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="adminApp" class="app hidden">
 
   <!-- ==========================================
        SIDEBAR
@@ -100,12 +174,12 @@
       </div>
 
       <div class="profile-data">
-        <strong>Kaique Vital</strong>
+        <strong id="sidebarAdminName">Kaique Vital</strong>
         <span>Administrador</span>
       </div>
 
-      <button class="profile-more">
-        ⋮
+      <button class="profile-more logout-btn" id="logoutButton" title="Sair">
+        ↪
       </button>
 
     </div>
@@ -157,9 +231,9 @@
           ♢
         </button>
 
-        <div class="topbar-user">
+        <button class="topbar-user logout-btn" id="mobileLogoutButton" title="Sair">
           K
-        </div>
+        </button>
 
       </div>
 
@@ -183,8 +257,8 @@
             PRETÃO DO CORTE
           </span>
 
-          <h2>
-            Bom dia, Kaique.
+          <h2 id="welcomeTitle">
+            Olá, Kaique.
           </h2>
 
           <p id="todayDate">
@@ -1369,6 +1443,106 @@
 <script>
 
 /* ==========================================
+   AUTENTICAÇÃO SUPABASE
+=========================================== */
+const SUPABASE_URL = "https://tmvcedpvrxredaqwoqhy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_95lMhyKPnUNREKLnUlMqmw_LheZOinx";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const loadingScreen = document.getElementById("loadingScreen");
+const loginScreen = document.getElementById("loginScreen");
+const adminApp = document.getElementById("adminApp");
+const loginForm = document.getElementById("loginForm");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginError = document.getElementById("loginError");
+const loginButton = document.getElementById("loginButton");
+
+function showLogin(message = "") {
+  loadingScreen.classList.add("hidden");
+  adminApp.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+  loginError.textContent = message;
+  loginError.classList.toggle("show", Boolean(message));
+}
+
+function showAdmin(name) {
+  loadingScreen.classList.add("hidden");
+  loginScreen.classList.add("hidden");
+  adminApp.classList.remove("hidden");
+  const safeName = name || "Administrador";
+  document.getElementById("sidebarAdminName").textContent = safeName;
+  const firstName = safeName.trim().split(/\s+/)[0];
+  document.getElementById("welcomeTitle").textContent = `Olá, ${firstName}.`;
+}
+
+async function validateAdministrator(user) {
+  const { data, error } = await db.from("admins").select("nome").eq("user_id", user.id).maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    await db.auth.signOut();
+    showLogin("Este usuário não possui acesso administrativo.");
+    return false;
+  }
+  showAdmin(data.nome);
+  return true;
+}
+
+async function initializeAdmin() {
+  try {
+    const { data: { session }, error } = await db.auth.getSession();
+    if (error) throw error;
+    if (!session) return showLogin();
+    await validateAdministrator(session.user);
+  } catch (error) {
+    console.error(error);
+    await db.auth.signOut();
+    showLogin("Não foi possível validar o acesso. Tente novamente.");
+  }
+}
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.classList.remove("show");
+  loginButton.disabled = true;
+  loginButton.textContent = "Entrando...";
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: loginEmail.value.trim(),
+      password: loginPassword.value
+    });
+    if (error) throw error;
+    await validateAdministrator(data.user);
+  } catch (error) {
+    console.error(error);
+    await db.auth.signOut();
+    showLogin("E-mail ou senha incorretos.");
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = "Entrar no painel";
+  }
+});
+
+document.getElementById("togglePassword").addEventListener("click", () => {
+  const visible = loginPassword.type === "text";
+  loginPassword.type = visible ? "password" : "text";
+  document.getElementById("togglePassword").textContent = visible ? "Ver" : "Ocultar";
+});
+
+async function logoutAdmin() {
+  await db.auth.signOut();
+  loginPassword.value = "";
+  showLogin();
+}
+
+document.getElementById("logoutButton").addEventListener("click", logoutAdmin);
+document.getElementById("mobileLogoutButton").addEventListener("click", logoutAdmin);
+
+db.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") showLogin();
+});
+
+/* ==========================================
    NAVEGAÇÃO
 =========================================== */
 
@@ -1753,6 +1927,9 @@ document.addEventListener(
 
   }
 );
+
+
+initializeAdmin();
 
 </script>
 
