@@ -1076,48 +1076,47 @@ function createDates() {
   }
 }
 
-function renderTimes(selectedDate) {
+async function renderTimes(selectedDate) {
   const container = document.getElementById("times");
-  container.innerHTML = "";
+  container.innerHTML = "<p>Carregando horários disponíveis...</p>";
+  booking.time = "";
 
-  const hours = businessHours.find(item => Number(item.dia_semana) === selectedDate.getDay());
-  const duration = Number(booking.serviceDuration);
-
-  if (!hours || !duration) {
-    container.innerHTML = "<p>Não foi possível calcular os horários para este dia.</p>";
+  if (!booking.serviceId || !booking.dateISO) {
+    container.innerHTML = "<p>Escolha o serviço e a data para ver os horários.</p>";
     return;
   }
 
-  const start = timeToMinutes(hours.hora_inicio);
-  const end = timeToMinutes(hours.hora_fim);
-  const now = new Date();
-  const isToday = selectedDate.getFullYear() === now.getFullYear()
-    && selectedDate.getMonth() === now.getMonth()
-    && selectedDate.getDate() === now.getDate();
+  try {
+    const { data, error } = await db.rpc("horarios_disponiveis", {
+      p_servico_id: booking.serviceId,
+      p_data: booking.dateISO
+    });
 
-  let count = 0;
+    if (error) throw error;
 
-  for (let slot = start; slot + duration <= end; slot += duration) {
-    if (isToday) {
-      const currentMinutes = (now.getHours() * 60) + now.getMinutes();
-      if (slot <= currentMinutes) continue;
+    const horarios = (data || []).map(item => String(item.horario || "").slice(0, 5));
+
+    if (!horarios.length) {
+      container.innerHTML = "<p>Não há mais horários disponíveis para este dia.</p>";
+      return;
     }
 
-    const time = minutesToTime(slot);
-    const button = document.createElement("button");
-    button.className = "time";
-    button.innerText = time;
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".time").forEach(item => item.classList.remove("selected"));
-      button.classList.add("selected");
-      booking.time = time;
-    });
-    container.appendChild(button);
-    count++;
-  }
+    container.innerHTML = "";
 
-  if (!count) {
-    container.innerHTML = "<p>Não há mais horários para este dia.</p>";
+    horarios.forEach(time => {
+      const button = document.createElement("button");
+      button.className = "time";
+      button.innerText = time;
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".time").forEach(item => item.classList.remove("selected"));
+        button.classList.add("selected");
+        booking.time = time;
+      });
+      container.appendChild(button);
+    });
+  } catch (error) {
+    console.error("Erro ao carregar horários disponíveis:", error);
+    container.innerHTML = "<p>Não foi possível carregar os horários. Atualize a página e tente novamente.</p>";
   }
 }
 
