@@ -465,56 +465,8 @@
         </span>
 
 
-        <div class="times">
-
-          <button class="time">
-            09:00
-          </button>
-
-          <button class="time">
-            09:40
-          </button>
-
-          <button class="time">
-            10:20
-          </button>
-
-          <button class="time">
-            11:00
-          </button>
-
-          <button class="time">
-            13:00
-          </button>
-
-          <button class="time">
-            13:40
-          </button>
-
-          <button class="time">
-            14:20
-          </button>
-
-          <button class="time">
-            15:00
-          </button>
-
-          <button class="time">
-            16:20
-          </button>
-
-          <button class="time">
-            17:00
-          </button>
-
-          <button class="time">
-            17:40
-          </button>
-
-          <button class="time">
-            18:20
-          </button>
-
+        <div class="times" id="times">
+          <p>Escolha uma data para ver os horários.</p>
         </div>
 
 
@@ -962,6 +914,7 @@ let booking = {
   serviceId: null,
   serviceDuration: null,
   date: "",
+  dateISO: "",
   time: "",
   name: "",
   phone: ""
@@ -1004,6 +957,10 @@ function chooseServiceById(serviceId) {
   booking.service = service.nome;
   booking.serviceId = Number(service.id);
   booking.serviceDuration = Number(service.duracao_minutos);
+  booking.date = "";
+  booking.dateISO = "";
+  booking.time = "";
+  if (businessHours.length) createDates();
 
   document.querySelectorAll(".booking-option").forEach(button => {
     button.classList.toggle("selected", Number(button.dataset.serviceId) === Number(serviceId));
@@ -1020,211 +977,148 @@ function chooseService(service) {
 
 
 /* =========================
-   DATAS
+   DATAS E HORÁRIOS REAIS
 ========================= */
 
+let businessHours = [];
+
+function timeToMinutes(value) {
+  const [hours, minutes] = String(value || "00:00").slice(0, 5).split(":").map(Number);
+  return (hours * 60) + minutes;
+}
+
+function minutesToTime(total) {
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
+async function loadBusinessHours() {
+  const datesContainer = document.getElementById("dates");
+  datesContainer.innerHTML = "<p>Carregando dias disponíveis...</p>";
+
+  try {
+    const { data, error } = await db
+      .from("horarios_funcionamento")
+      .select("dia_semana,hora_inicio,hora_fim,ativo")
+      .eq("ativo", true)
+      .order("dia_semana");
+
+    if (error) throw error;
+
+    businessHours = data || [];
+    createDates();
+  } catch (error) {
+    console.error("Erro ao carregar horários de funcionamento:", error);
+    datesContainer.innerHTML = "<p>Não foi possível carregar os dias de atendimento. Atualize a página e tente novamente.</p>";
+  }
+}
+
 function createDates() {
-
-  const container =
-    document.getElementById("dates");
-
-
+  const container = document.getElementById("dates");
   container.innerHTML = "";
 
+  booking.date = "";
+  booking.dateISO = "";
+  booking.time = "";
+  document.getElementById("times").innerHTML = "<p>Escolha uma data para ver os horários.</p>";
 
-  const dayNames = [
-    "DOM",
-    "SEG",
-    "TER",
-    "QUA",
-    "QUI",
-    "SEX",
-    "SÁB"
-  ];
+  const dayNames = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+  const monthNames = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+  const openDays = new Set(businessHours.map(item => Number(item.dia_semana)));
 
-
-  const monthNames = [
-    "JAN",
-    "FEV",
-    "MAR",
-    "ABR",
-    "MAI",
-    "JUN",
-    "JUL",
-    "AGO",
-    "SET",
-    "OUT",
-    "NOV",
-    "DEZ"
-  ];
-
+  if (!openDays.size) {
+    container.innerHTML = "<p>Nenhum dia de atendimento está disponível no momento.</p>";
+    return;
+  }
 
   let created = 0;
   let offset = 0;
 
-
-  while (created < 5) {
-
+  while (created < 5 && offset < 60) {
     const date = new Date();
-
-    date.setHours(
-      12,
-      0,
-      0,
-      0
-    );
-
-
-    date.setDate(
-      date.getDate() + offset
-    );
-
-
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + offset);
     offset++;
 
+    if (!openDays.has(date.getDay())) continue;
 
-    /*
-      Demonstração:
-      domingo e segunda-feira
-      não são exibidos.
-    */
-
-    if (
-      date.getDay() === 0 ||
-      date.getDay() === 1
-    ) {
-      continue;
-    }
-
-
-    const button =
-      document.createElement("button");
-
-
-    button.className =
-      "date-card";
-
-
-    const topLabel =
-      created === 0
-        ? "PRÓXIMO"
-        : dayNames[
-            date.getDay()
-          ];
-
-
+    const button = document.createElement("button");
+    button.className = "date-card";
     button.innerHTML = `
-
-      <span>
-        ${topLabel}
-      </span>
-
-      <strong>
-        ${String(
-          date.getDate()
-        ).padStart(2, "0")}
-      </strong>
-
-      <small>
-        ${monthNames[
-          date.getMonth()
-        ]}
-      </small>
-
+      <span>${created === 0 ? "PRÓXIMO" : dayNames[date.getDay()]}</span>
+      <strong>${String(date.getDate()).padStart(2, "0")}</strong>
+      <small>${monthNames[date.getMonth()]}</small>
     `;
 
+    const formatted = date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
-    const formatted =
-      date.toLocaleDateString(
-        "pt-BR",
-        {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric"
-        }
-      );
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".date-card").forEach(item => item.classList.remove("selected"));
+      button.classList.add("selected");
+      booking.date = formatted;
+      booking.dateISO = iso;
+      booking.time = "";
+      renderTimes(date);
+    });
 
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        document
-          .querySelectorAll(
-            ".date-card"
-          )
-          .forEach(item => {
-
-            item.classList.remove(
-              "selected"
-            );
-
-          });
-
-
-        button.classList.add(
-          "selected"
-        );
-
-
-        booking.date =
-          formatted;
-
-      }
-    );
-
-
-    container.appendChild(
-      button
-    );
-
-
+    container.appendChild(button);
     created++;
-
   }
-
 }
 
+function renderTimes(selectedDate) {
+  const container = document.getElementById("times");
+  container.innerHTML = "";
 
-createDates();
+  const hours = businessHours.find(item => Number(item.dia_semana) === selectedDate.getDay());
+  const duration = Number(booking.serviceDuration);
+
+  if (!hours || !duration) {
+    container.innerHTML = "<p>Não foi possível calcular os horários para este dia.</p>";
+    return;
+  }
+
+  const start = timeToMinutes(hours.hora_inicio);
+  const end = timeToMinutes(hours.hora_fim);
+  const now = new Date();
+  const isToday = selectedDate.getFullYear() === now.getFullYear()
+    && selectedDate.getMonth() === now.getMonth()
+    && selectedDate.getDate() === now.getDate();
+
+  let count = 0;
+
+  for (let slot = start; slot + duration <= end; slot += duration) {
+    if (isToday) {
+      const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+      if (slot <= currentMinutes) continue;
+    }
+
+    const time = minutesToTime(slot);
+    const button = document.createElement("button");
+    button.className = "time";
+    button.innerText = time;
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".time").forEach(item => item.classList.remove("selected"));
+      button.classList.add("selected");
+      booking.time = time;
+    });
+    container.appendChild(button);
+    count++;
+  }
+
+  if (!count) {
+    container.innerHTML = "<p>Não há mais horários para este dia.</p>";
+  }
+}
+
+loadBusinessHours();
 loadPublicServices();
-
-
-/* =========================
-   HORÁRIOS
-========================= */
-
-document
-  .querySelectorAll(".time")
-  .forEach(button => {
-
-    button.addEventListener(
-      "click",
-      () => {
-
-        document
-          .querySelectorAll(".time")
-          .forEach(item => {
-
-            item.classList.remove(
-              "selected"
-            );
-
-          });
-
-
-        button.classList.add(
-          "selected"
-        );
-
-
-        booking.time =
-          button.innerText;
-
-      }
-    );
-
-  });
 
 
 /* =========================
