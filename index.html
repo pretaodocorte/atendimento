@@ -20,6 +20,7 @@
   >
 
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -182,91 +183,8 @@
     </div>
 
 
-    <div class="services-grid">
-
-      <article class="service-card">
-
-        <div class="service-number">
-          01
-        </div>
-
-        <h3>Corte masculino</h3>
-
-        <p>
-          Corte personalizado com acabamento
-          profissional e atenção aos detalhes.
-        </p>
-
-        <div class="service-footer">
-          <span>Valor a definir</span>
-          <span>Duração a definir</span>
-        </div>
-
-        <button
-          class="service-book"
-          onclick="chooseService('Corte masculino')"
-        >
-          Escolher serviço →
-        </button>
-
-      </article>
-
-
-      <article class="service-card">
-
-        <div class="service-number">
-          02
-        </div>
-
-        <h3>Barba</h3>
-
-        <p>
-          Modelagem e acabamento para manter
-          a barba alinhada e bem cuidada.
-        </p>
-
-        <div class="service-footer">
-          <span>Valor a definir</span>
-          <span>Duração a definir</span>
-        </div>
-
-        <button
-          class="service-book"
-          onclick="chooseService('Barba')"
-        >
-          Escolher serviço →
-        </button>
-
-      </article>
-
-
-      <article class="service-card">
-
-        <div class="service-number">
-          03
-        </div>
-
-        <h3>Corte + Barba</h3>
-
-        <p>
-          Uma experiência completa para
-          renovar o visual em um único atendimento.
-        </p>
-
-        <div class="service-footer">
-          <span>Valor a definir</span>
-          <span>Duração a definir</span>
-        </div>
-
-        <button
-          class="service-book"
-          onclick="chooseService('Corte + Barba')"
-        >
-          Escolher serviço →
-        </button>
-
-      </article>
-
+    <div class="services-grid" id="servicesGrid">
+      <p>Carregando serviços...</p>
     </div>
 
   </div>
@@ -478,67 +396,8 @@
         </span>
 
 
-        <div class="booking-options">
-
-          <button
-            class="booking-option"
-            data-service="Corte masculino"
-          >
-
-            <div>
-              <strong>
-                Corte masculino
-              </strong>
-
-              <small>
-                Duração e valor a definir
-              </small>
-            </div>
-
-            <span>›</span>
-
-          </button>
-
-
-          <button
-            class="booking-option"
-            data-service="Barba"
-          >
-
-            <div>
-              <strong>
-                Barba
-              </strong>
-
-              <small>
-                Duração e valor a definir
-              </small>
-            </div>
-
-            <span>›</span>
-
-          </button>
-
-
-          <button
-            class="booking-option"
-            data-service="Corte + Barba"
-          >
-
-            <div>
-              <strong>
-                Corte + Barba
-              </strong>
-
-              <small>
-                Duração e valor a definir
-              </small>
-            </div>
-
-            <span>›</span>
-
-          </button>
-
+        <div class="booking-options" id="bookingServiceOptions">
+          <p>Carregando serviços...</p>
         </div>
 
 
@@ -1004,10 +863,104 @@
 
 <script>
 
+const SUPABASE_URL = "https://tmvcedpvrxredaqwoqhy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_95lMhyKPnUNREKLnUlMqmw_LheZOinx";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let publicServices = [];
+
+function formatPrice(value) {
+  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function formatDuration(minutes) {
+  const value = Number(minutes);
+  if (value === 60) return "1 hora";
+  if (value > 60 && value % 60 === 0) return `${value / 60} horas`;
+  if (value > 60) return `${Math.floor(value / 60)}h${String(value % 60).padStart(2, "0")}`;
+  return `${value} minutos`;
+}
+
+function bindBookingServiceButtons() {
+  document.querySelectorAll(".booking-option").forEach(button => {
+    button.addEventListener("click", () => {
+      document.querySelectorAll(".booking-option").forEach(item => item.classList.remove("selected"));
+      button.classList.add("selected");
+      booking.service = button.dataset.service;
+      booking.serviceId = Number(button.dataset.serviceId);
+      booking.serviceDuration = Number(button.dataset.duration);
+    });
+  });
+}
+
+async function loadPublicServices() {
+  const servicesGrid = document.getElementById("servicesGrid");
+  const bookingOptions = document.getElementById("bookingServiceOptions");
+
+  try {
+    const { data, error } = await db
+      .from("servicos")
+      .select("id,nome,descricao,preco,duracao_minutos")
+      .eq("ativo", true)
+      .not("preco", "is", null)
+      .not("duracao_minutos", "is", null)
+      .order("id");
+
+    if (error) throw error;
+    publicServices = data || [];
+
+    if (!publicServices.length) {
+      servicesGrid.innerHTML = `<article class="service-card"><h3>Nenhum serviço disponível</h3><p>Os serviços para agendamento serão exibidos aqui em breve.</p></article>`;
+      bookingOptions.innerHTML = `<p>Nenhum serviço disponível para agendamento no momento.</p>`;
+      return;
+    }
+
+    servicesGrid.innerHTML = publicServices.map((service, index) => `
+      <article class="service-card">
+        <div class="service-number">${String(index + 1).padStart(2, "0")}</div>
+        <h3>${escapeHtml(service.nome)}</h3>
+        <p>${escapeHtml(service.descricao || "Atendimento profissional no Pretão do Corte.")}</p>
+        <div class="service-footer">
+          <span>${formatPrice(service.preco)}</span>
+          <span>${formatDuration(service.duracao_minutos)}</span>
+        </div>
+        <button class="service-book" onclick="chooseServiceById(${service.id})">Escolher serviço →</button>
+      </article>
+    `).join("");
+
+    bookingOptions.innerHTML = publicServices.map(service => `
+      <button class="booking-option" data-service-id="${service.id}" data-service="${escapeHtml(service.nome)}" data-duration="${service.duracao_minutos}">
+        <div>
+          <strong>${escapeHtml(service.nome)}</strong>
+          <small>${formatDuration(service.duracao_minutos)} • ${formatPrice(service.preco)}</small>
+        </div>
+        <span>›</span>
+      </button>
+    `).join("");
+
+    bindBookingServiceButtons();
+  } catch (error) {
+    console.error("Erro ao carregar serviços:", error);
+    servicesGrid.innerHTML = `<article class="service-card"><h3>Não foi possível carregar os serviços</h3><p>Atualize a página e tente novamente.</p></article>`;
+    bookingOptions.innerHTML = `<p>Não foi possível carregar os serviços agora. Tente novamente em instantes.</p>`;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
 let currentStep = 1;
 
 let booking = {
   service: "",
+  serviceId: null,
+  serviceDuration: null,
   date: "",
   time: "",
   name: "",
@@ -1044,63 +997,26 @@ const titles = {
    SERVIÇOS
 ========================= */
 
-document
-  .querySelectorAll(".booking-option")
-  .forEach(button => {
+function chooseServiceById(serviceId) {
+  const service = publicServices.find(item => Number(item.id) === Number(serviceId));
+  if (!service) return;
 
-    button.addEventListener(
-      "click",
-      () => {
+  booking.service = service.nome;
+  booking.serviceId = Number(service.id);
+  booking.serviceDuration = Number(service.duracao_minutos);
 
-        document
-          .querySelectorAll(".booking-option")
-          .forEach(item => {
-
-            item.classList.remove(
-              "selected"
-            );
-
-          });
-
-
-        button.classList.add(
-          "selected"
-        );
-
-
-        booking.service =
-          button.dataset.service;
-
-      }
-    );
-
+  document.querySelectorAll(".booking-option").forEach(button => {
+    button.classList.toggle("selected", Number(button.dataset.serviceId) === Number(serviceId));
   });
 
+  document.getElementById("agendamento").scrollIntoView({ behavior: "smooth" });
+}
 
 function chooseService(service) {
-
-  booking.service = service;
-
-
-  document
-    .querySelectorAll(".booking-option")
-    .forEach(button => {
-
-      button.classList.toggle(
-        "selected",
-        button.dataset.service === service
-      );
-
-    });
-
-
-  document
-    .getElementById("agendamento")
-    .scrollIntoView({
-      behavior: "smooth"
-    });
-
+  const found = publicServices.find(item => item.nome === service);
+  if (found) chooseServiceById(found.id);
 }
+
 
 
 /* =========================
@@ -1271,6 +1187,7 @@ function createDates() {
 
 
 createDates();
+loadPublicServices();
 
 
 /* =========================
@@ -1579,6 +1496,8 @@ function resetBooking() {
 
   booking = {
     service: "",
+    serviceId: null,
+    serviceDuration: null,
     date: "",
     time: "",
     name: "",
