@@ -45,6 +45,9 @@
     .hours-switch{position:relative;width:44px;height:24px;display:block}.hours-switch input{opacity:0;width:0;height:0}.hours-switch span{position:absolute;inset:0;background:#d8d1ca;border-radius:30px;cursor:pointer;transition:.2s}.hours-switch span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:.2s}.hours-switch input:checked+span{background:#4b3020}.hours-switch input:checked+span:before{transform:translateX(20px)}
     .schedule-message{margin:18px 0 0;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.schedule-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.schedule-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.schedule-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
     @media(max-width:760px){.hours-row{grid-template-columns:1fr 50px}.hours-times{grid-column:1/-1;justify-content:flex-start}.hours-times input{flex:1;width:auto}.settings-footer{gap:14px;align-items:flex-start}}
+    .service-message{margin:0 0 18px;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.service-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.service-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.service-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
+    .service-empty-real{padding:54px 24px;text-align:center;color:#8b7d72}.service-empty-real strong{display:block;color:#2f2119;font-size:18px;margin-bottom:7px}
+    .status.inactive-status{background:#f1efec;color:#786e67}.status.inactive-status i{background:#9a918a}
   </style>
 </head>
 
@@ -603,12 +606,12 @@
 
         <div>
           <span>Serviços ativos</span>
-          <strong>1</strong>
+          <strong id="activeServicesCount">0</strong>
         </div>
 
         <div>
           <span>Preço médio</span>
-          <strong>R$ 30,00</strong>
+          <strong id="averageServicePrice">R$ 0,00</strong>
         </div>
 
         <div>
@@ -637,11 +640,14 @@
             <input
               type="text"
               placeholder="Buscar serviço"
+              id="serviceSearch"
             >
           </div>
 
         </div>
 
+
+        <div id="serviceMessage" class="service-message hidden"></div>
 
         <div class="service-table">
 
@@ -656,51 +662,7 @@
           </div>
 
 
-          <div class="service-item">
-
-            <div class="service-name">
-
-              <div class="service-avatar">
-                ✂
-              </div>
-
-              <div>
-                <strong>
-                  Corte masculino
-                </strong>
-
-                <span>
-                  Corte e acabamento
-                </span>
-              </div>
-
-            </div>
-
-
-            <strong>
-              R$ 30,00
-            </strong>
-
-
-            <span class="not-defined">
-              A definir
-            </span>
-
-
-            <span class="status active-status">
-              <i></i>
-              Ativo
-            </span>
-
-
-            <button
-              class="more-button"
-              onclick="editExampleService()"
-            >
-              •••
-            </button>
-
-          </div>
+          <div id="servicesList"></div>
 
         </div>
 
@@ -1089,7 +1051,8 @@
 
       <button
         class="btn btn-primary"
-        onclick="demoSaveService()"
+        id="saveServiceButton"
+        onclick="saveService()"
       >
         Salvar serviço
       </button>
@@ -1549,6 +1512,149 @@ async function saveBusinessHours() {
 }
 
 /* ==========================================
+   SERVIÇOS - SUPABASE
+=========================================== */
+let servicesCache = [];
+let editingServiceId = null;
+let servicesLoaded = false;
+
+function setServiceMessage(message = "", type = "info") {
+  const box = document.getElementById("serviceMessage");
+  box.textContent = message;
+  box.className = message ? `service-message ${type}` : "service-message hidden";
+}
+
+function moneyBR(value) {
+  if (value === null || value === undefined || value === "") return "A definir";
+  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function durationLabel(value) {
+  if (!value) return "A definir";
+  const n = Number(value);
+  if (n === 60) return "1 hora";
+  if (n === 90) return "1h30";
+  if (n === 120) return "2 horas";
+  return `${n} min`;
+}
+
+function renderServices(filter = "") {
+  const list = document.getElementById("servicesList");
+  const term = filter.trim().toLowerCase();
+  const filtered = servicesCache.filter(item =>
+    item.nome.toLowerCase().includes(term) || (item.descricao || "").toLowerCase().includes(term)
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="service-empty-real"><strong>${term ? "Nenhum serviço encontrado" : "Nenhum serviço cadastrado"}</strong><span>${term ? "Tente outra busca." : "Clique em Novo serviço para começar."}</span></div>`;
+  } else {
+    list.innerHTML = filtered.map(item => `
+      <div class="service-item">
+        <div class="service-name">
+          <div class="service-avatar">✂</div>
+          <div><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.descricao || "Sem descrição")}</span></div>
+        </div>
+        <strong>${moneyBR(item.preco)}</strong>
+        <span class="${item.duracao_minutos ? "" : "not-defined"}">${durationLabel(item.duracao_minutos)}</span>
+        <span class="status ${item.ativo ? "active-status" : "inactive-status"}"><i></i>${item.ativo ? "Ativo" : "Inativo"}</span>
+        <button class="more-button" type="button" onclick="editService(${item.id})" title="Editar serviço">•••</button>
+      </div>`).join("");
+  }
+
+  const active = servicesCache.filter(item => item.ativo).length;
+  const prices = servicesCache.map(item => item.preco).filter(value => value !== null && value !== undefined).map(Number);
+  const avg = prices.length ? prices.reduce((a,b) => a+b, 0) / prices.length : 0;
+  document.getElementById("activeServicesCount").textContent = active;
+  document.getElementById("averageServicePrice").textContent = moneyBR(avg);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+}
+
+async function loadServices() {
+  setServiceMessage("Carregando serviços...", "info");
+  const { data, error } = await db.from("servicos").select("id,nome,descricao,preco,duracao_minutos,ativo,created_at").order("id");
+  if (error) {
+    console.error(error);
+    setServiceMessage("Não foi possível carregar os serviços.", "error");
+    return;
+  }
+  servicesCache = data || [];
+  servicesLoaded = true;
+  setServiceMessage("");
+  renderServices(document.getElementById("serviceSearch").value);
+}
+
+function openServiceModal() {
+  editingServiceId = null;
+  document.getElementById("serviceModalTitle").textContent = "Novo serviço";
+  document.getElementById("serviceName").value = "";
+  document.getElementById("servicePrice").value = "";
+  document.getElementById("serviceDuration").value = "";
+  document.getElementById("serviceDescription").value = "";
+  document.getElementById("serviceActive").checked = false;
+  openModal("serviceModal");
+}
+
+function editService(id) {
+  const item = servicesCache.find(service => Number(service.id) === Number(id));
+  if (!item) return;
+  editingServiceId = item.id;
+  document.getElementById("serviceModalTitle").textContent = "Editar serviço";
+  document.getElementById("serviceName").value = item.nome || "";
+  document.getElementById("servicePrice").value = item.preco ?? "";
+  document.getElementById("serviceDuration").value = item.duracao_minutos ?? "";
+  document.getElementById("serviceDescription").value = item.descricao || "";
+  document.getElementById("serviceActive").checked = Boolean(item.ativo);
+  openModal("serviceModal");
+}
+
+async function saveService() {
+  const name = document.getElementById("serviceName").value.trim();
+  const priceRaw = document.getElementById("servicePrice").value;
+  const durationRaw = document.getElementById("serviceDuration").value;
+  const description = document.getElementById("serviceDescription").value.trim();
+  const active = document.getElementById("serviceActive").checked;
+  const button = document.getElementById("saveServiceButton");
+
+  if (!name) return alert("Informe o nome do serviço.");
+  if (active && (!priceRaw || !durationRaw)) return alert("Para ativar o serviço, informe o preço e a duração.");
+
+  const payload = {
+    nome: name,
+    descricao: description,
+    preco: priceRaw === "" ? null : Number(priceRaw),
+    duracao_minutos: durationRaw === "" ? null : Number(durationRaw),
+    ativo: active
+  };
+
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  try {
+    let error;
+    if (editingServiceId) {
+      ({ error } = await db.from("servicos").update(payload).eq("id", editingServiceId));
+    } else {
+      ({ error } = await db.from("servicos").insert(payload));
+    }
+    if (error) throw error;
+    closeServiceModal();
+    await loadServices();
+    setServiceMessage(editingServiceId ? "Serviço atualizado com sucesso." : "Serviço cadastrado com sucesso.", "success");
+    editingServiceId = null;
+  } catch (error) {
+    console.error(error);
+    alert("Não foi possível salvar o serviço. Tente novamente.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar serviço";
+  }
+}
+
+document.getElementById("serviceSearch").addEventListener("input", event => renderServices(event.target.value));
+
+/* ==========================================
    NAVEGAÇÃO
 =========================================== */
 
@@ -1646,6 +1752,8 @@ function goToPage(page) {
     pageNames[page].breadcrumb;
 
 
+  if (page === "servicos" && !servicesLoaded) loadServices();
+
   window.scrollTo({
     top: 0,
     behavior: "smooth"
@@ -1676,98 +1784,6 @@ document.getElementById(
 ).textContent =
   formattedDate.charAt(0).toUpperCase()
   + formattedDate.slice(1);
-
-
-/* ==========================================
-   MODAL SERVIÇOS
-=========================================== */
-
-function openServiceModal() {
-
-  document.getElementById(
-    "serviceModalTitle"
-  ).textContent =
-    "Novo serviço";
-
-
-  document.getElementById(
-    "serviceName"
-  ).value = "";
-
-
-  document.getElementById(
-    "servicePrice"
-  ).value = "";
-
-
-  document.getElementById(
-    "serviceDuration"
-  ).value = "";
-
-
-  document.getElementById(
-    "serviceDescription"
-  ).value = "";
-
-
-  document.getElementById(
-    "serviceActive"
-  ).checked = true;
-
-
-  openModal("serviceModal");
-
-}
-
-
-function editExampleService() {
-
-  document.getElementById(
-    "serviceModalTitle"
-  ).textContent =
-    "Editar serviço";
-
-
-  document.getElementById(
-    "serviceName"
-  ).value =
-    "Corte masculino";
-
-
-  document.getElementById(
-    "servicePrice"
-  ).value =
-    "30";
-
-
-  document.getElementById(
-    "serviceDuration"
-  ).value = "";
-
-
-  document.getElementById(
-    "serviceDescription"
-  ).value =
-    "Corte masculino com acabamento";
-
-
-  document.getElementById(
-    "serviceActive"
-  ).checked = true;
-
-
-  openModal("serviceModal");
-
-}
-
-
-function closeServiceModal() {
-
-  closeModal(
-    "serviceModal"
-  );
-
-}
 
 
 /* ==========================================
@@ -1875,15 +1891,6 @@ document
 /* ==========================================
    DEMONSTRAÇÃO
 =========================================== */
-
-function demoSaveService() {
-
-  alert(
-    "O painel visual está pronto. No próximo passo este botão será conectado ao Supabase."
-  );
-
-}
-
 
 function demoSaveAppointment() {
 
