@@ -20,6 +20,30 @@
   >
 
   <link rel="stylesheet" href="style.css">
+
+  <style>
+    .nav-client-area{display:flex;align-items:center;gap:10px}
+    .nav-client-btn{white-space:nowrap}
+    .client-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px}
+    .client-modal.hidden{display:none}
+    .client-modal-backdrop{position:absolute;inset:0;background:rgba(18,14,10,.62);backdrop-filter:blur(4px)}
+    .client-modal-card{position:relative;z-index:1;width:min(440px,100%);max-height:90vh;overflow:auto;background:#fffaf6;border-radius:20px;padding:30px;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+    .client-modal-close{position:absolute;right:16px;top:12px;border:0;background:transparent;font-size:30px;line-height:1;color:#5a4b40;cursor:pointer}
+    .client-modal-card h3{margin:8px 0 6px;font-size:28px;color:#211811}
+    .client-modal-card>div>p{margin:0 0 20px;color:#75685f;line-height:1.5}
+    .client-auth-tabs{display:flex;gap:8px;margin:0 0 20px;padding:4px;background:#efe5dc;border-radius:12px}
+    .client-auth-tab{flex:1;border:0;background:transparent;padding:10px;border-radius:9px;font-weight:800;color:#75685f;cursor:pointer}
+    .client-auth-tab.active{background:#fff;color:#211811;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .client-auth-submit{width:100%;margin-top:8px}
+    .client-auth-message{margin-top:14px;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.4}
+    .client-auth-message.error{background:#fff0ee;color:#8d2f24}
+    .client-auth-message.success{background:#edf8ef;color:#28633a}
+    .client-account-card{display:grid;gap:12px;margin:20px 0;padding:16px;background:#f2e9e1;border-radius:14px}
+    .client-account-card span{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#88796e}
+    .client-account-card strong{display:block;margin-top:3px;color:#241912}
+    .client-account-actions{display:grid;gap:10px}
+    @media(max-width:760px){.nav-client-area{gap:6px}.nav-client-btn{padding-left:12px;padding-right:12px}.nav-book{display:none}}
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
@@ -48,12 +72,22 @@
       <a href="#localizacao">Localização</a>
     </nav>
 
-    <a
-      href="#agendamento"
-      class="btn btn-dark nav-book"
-    >
-      Agendar
-    </a>
+    <div class="nav-client-area">
+      <button
+        type="button"
+        class="btn btn-outline nav-client-btn"
+        onclick="openClientAuth()"
+      >
+        <span id="clientNavLabel">Entrar</span>
+      </button>
+
+      <a
+        href="#agendamento"
+        class="btn btn-dark nav-book"
+      >
+        Agendar
+      </a>
+    </div>
 
   </div>
 
@@ -542,13 +576,13 @@
         </div>
 
 
-        <div class="booking-notice">
+        <div class="booking-notice" id="bookingClientNotice">
 
           <strong>
             Importante
           </strong>
 
-          <p>
+          <p id="bookingClientNoticeText">
             Informe seu nome e sobrenome e um WhatsApp válido.
             Confira os dados antes de confirmar o horário.
           </p>
@@ -823,6 +857,299 @@ const SUPABASE_URL = "https://tmvcedpvrxredaqwoqhy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_95lMhyKPnUNREKLnUlMqmw_LheZOinx";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+let clientSession = null;
+let clientAccount = null;
+
+const CLIENT_SESSION_KEY = "pretao_cliente_session";
+
+function normalizePhone(value) {
+  return String(value || "").replace(/\D/g, "").slice(0, 11);
+}
+
+function formatPhone(value) {
+  const digits = normalizePhone(value);
+
+  if (digits.length > 7) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+
+  if (digits.length > 2) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  }
+
+  return digits ? `(${digits}` : "";
+}
+
+function setClientMessage(message, type = "error") {
+  const box = document.getElementById("clientAuthMessage");
+  if (!box) return;
+
+  box.textContent = message || "";
+  box.className = message
+    ? `client-auth-message ${type}`
+    : "client-auth-message hidden";
+}
+
+function openClientAuth() {
+  document.getElementById("clientAuthModal").classList.remove("hidden");
+
+  if (clientAccount) {
+    showClientAccount();
+  } else {
+    showClientLogin();
+  }
+}
+
+function closeClientAuth() {
+  document.getElementById("clientAuthModal").classList.add("hidden");
+}
+
+function showClientLogin() {
+  document.getElementById("clientLoginForm").classList.remove("hidden");
+  document.getElementById("clientRegisterForm").classList.add("hidden");
+  document.getElementById("clientAccountContent").classList.add("hidden");
+  document.getElementById("clientAuthContent").classList.remove("hidden");
+
+  document.getElementById("clientLoginTab").classList.add("active");
+  document.getElementById("clientRegisterTab").classList.remove("active");
+
+  document.getElementById("clientAuthTitle").textContent = "Entrar";
+  document.getElementById("clientAuthSubtitle").textContent =
+    "Acesse seus agendamentos usando seu WhatsApp.";
+
+  setClientMessage("");
+}
+
+function showClientRegister() {
+  document.getElementById("clientLoginForm").classList.add("hidden");
+  document.getElementById("clientRegisterForm").classList.remove("hidden");
+  document.getElementById("clientAccountContent").classList.add("hidden");
+  document.getElementById("clientAuthContent").classList.remove("hidden");
+
+  document.getElementById("clientLoginTab").classList.remove("active");
+  document.getElementById("clientRegisterTab").classList.add("active");
+
+  document.getElementById("clientAuthTitle").textContent = "Criar conta";
+  document.getElementById("clientAuthSubtitle").textContent =
+    "Cadastre-se usando seu WhatsApp.";
+
+  setClientMessage("");
+}
+
+function showClientAccount() {
+  document.getElementById("clientAuthContent").classList.add("hidden");
+  document.getElementById("clientAccountContent").classList.remove("hidden");
+
+  document.getElementById("clientWelcomeTitle").textContent =
+    `Olá, ${clientAccount?.nome || "cliente"}!`;
+
+  document.getElementById("clientAccountName").textContent =
+    clientAccount?.nome || "—";
+
+  document.getElementById("clientAccountPhone").textContent =
+    formatPhone(clientAccount?.whatsapp || "");
+
+  document.getElementById("clientNavLabel").textContent =
+    clientAccount?.nome ? `Olá, ${clientAccount.nome.split(/\s+/)[0]}` : "Minha conta";
+}
+
+function goToBookingFromAccount() {
+  closeClientAuth();
+  document.getElementById("agendamento").scrollIntoView({ behavior: "smooth" });
+  updateBookingClientFields();
+}
+
+async function registerClient() {
+  const name = document.getElementById("clientRegisterName").value.trim();
+  const phone = normalizePhone(document.getElementById("clientRegisterPhone").value);
+  const password = document.getElementById("clientRegisterPassword").value;
+  const confirm = document.getElementById("clientRegisterPasswordConfirm").value;
+
+  const parts = name.split(/\s+/).filter(Boolean);
+
+  if (parts.length < 2) {
+    setClientMessage("Digite seu nome e sobrenome.");
+    return;
+  }
+
+  if (!/^[1-9]{2}9\d{8}$/.test(phone)) {
+    setClientMessage("Digite um WhatsApp válido com DDD.");
+    return;
+  }
+
+  if (password.length < 6) {
+    setClientMessage("A senha deve ter pelo menos 6 caracteres.");
+    return;
+  }
+
+  if (password !== confirm) {
+    setClientMessage("As senhas não são iguais.");
+    return;
+  }
+
+  try {
+    const { data, error } = await db.rpc("cadastrar_cliente", {
+      p_nome: parts.join(" "),
+      p_whatsapp: phone,
+      p_senha: password
+    });
+
+    if (error) throw error;
+
+    setClientMessage("Conta criada! Agora você já pode entrar.", "success");
+
+    document.getElementById("clientLoginPhone").value = formatPhone(phone);
+    document.getElementById("clientLoginPassword").value = "";
+
+    showClientLogin();
+    setClientMessage("Conta criada! Entre com seu WhatsApp e senha.", "success");
+  } catch (error) {
+    console.error("Erro no cadastro:", error);
+    setClientMessage(error?.message || "Não foi possível criar sua conta.");
+  }
+}
+
+async function loginClient() {
+  const phone = normalizePhone(document.getElementById("clientLoginPhone").value);
+  const password = document.getElementById("clientLoginPassword").value;
+
+  if (!/^[1-9]{2}9\d{8}$/.test(phone)) {
+    setClientMessage("Digite um WhatsApp válido com DDD.");
+    return;
+  }
+
+  if (!password) {
+    setClientMessage("Digite sua senha.");
+    return;
+  }
+
+  try {
+    const { data, error } = await db.rpc("login_cliente", {
+      p_whatsapp: phone,
+      p_senha: password
+    });
+
+    if (error) throw error;
+
+    if (!data?.sucesso || !data?.token) {
+      throw new Error("Não foi possível iniciar sua sessão.");
+    }
+
+    clientSession = data.token;
+
+    clientAccount = {
+      id: Number(data.cliente_id),
+      nome: data.nome,
+      whatsapp: data.whatsapp
+    };
+
+    localStorage.setItem(CLIENT_SESSION_KEY, JSON.stringify({
+      token: clientSession,
+      cliente: clientAccount
+    }));
+
+    booking.clientId = clientAccount.id;
+    booking.name = clientAccount.nome;
+    booking.phone = clientAccount.whatsapp;
+
+    updateBookingClientFields();
+    showClientAccount();
+
+  } catch (error) {
+    console.error("Erro no login:", error);
+    setClientMessage(error?.message || "WhatsApp ou senha inválidos.");
+  }
+}
+
+async function logoutClient() {
+  if (clientSession) {
+    try {
+      const tokenHash = await sha256Hex(clientSession);
+
+      await db
+        .from("cliente_sessoes")
+        .delete()
+        .eq("token_hash", tokenHash);
+    } catch (error) {
+      console.warn("Não foi possível encerrar a sessão no servidor.", error);
+    }
+  }
+
+  clientSession = null;
+  clientAccount = null;
+  booking.clientId = null;
+
+  localStorage.removeItem(CLIENT_SESSION_KEY);
+
+  document.getElementById("clientNavLabel").textContent = "Entrar";
+  closeClientAuth();
+  updateBookingClientFields();
+}
+
+async function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function restoreClientSession() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CLIENT_SESSION_KEY) || "null");
+
+    if (!saved?.token || !saved?.cliente?.id) {
+      updateBookingClientFields();
+      return;
+    }
+
+    clientSession = saved.token;
+    clientAccount = saved.cliente;
+
+    booking.clientId = Number(clientAccount.id);
+    booking.name = clientAccount.nome;
+    booking.phone = clientAccount.whatsapp;
+
+    document.getElementById("clientNavLabel").textContent =
+      `Olá, ${clientAccount.nome.split(/\s+/)[0]}`;
+
+    updateBookingClientFields();
+  } catch (error) {
+    console.warn("Sessão local inválida.", error);
+    localStorage.removeItem(CLIENT_SESSION_KEY);
+  }
+}
+
+function updateBookingClientFields() {
+  const nameInput = document.getElementById("nome");
+  const phoneInput = document.getElementById("telefone");
+  const notice = document.getElementById("bookingClientNoticeText");
+
+  if (!nameInput || !phoneInput) return;
+
+  if (clientAccount) {
+    nameInput.value = clientAccount.nome || "";
+    phoneInput.value = formatPhone(clientAccount.whatsapp || "");
+
+    nameInput.readOnly = true;
+    phoneInput.readOnly = true;
+
+    if (notice) {
+      notice.textContent =
+        "Você está conectado. Seus dados serão usados automaticamente neste agendamento.";
+    }
+  } else {
+    nameInput.readOnly = false;
+    phoneInput.readOnly = false;
+
+    if (notice) {
+      notice.textContent =
+        "Entre na sua conta para preencher seus dados automaticamente ou informe nome e WhatsApp.";
+    }
+  }
+}
+
+
 let publicServices = [];
 
 function formatPrice(value) {
@@ -921,7 +1248,8 @@ let booking = {
   dateISO: "",
   time: "",
   name: "",
-  phone: ""
+  phone: "",
+  clientId: null
 };
 
 
@@ -1122,6 +1450,7 @@ async function renderTimes(selectedDate) {
 
 loadBusinessHours();
 loadPublicServices();
+restoreClientSession();
 
 
 /* =========================
@@ -1297,6 +1626,12 @@ phoneInput.addEventListener("input", () => {
 
 async function confirmBooking() {
 
+  if (clientAccount) {
+    booking.name = clientAccount.nome;
+    booking.phone = clientAccount.whatsapp;
+    booking.clientId = Number(clientAccount.id);
+  }
+
   const name =
     document
       .getElementById("nome")
@@ -1360,6 +1695,17 @@ async function confirmBooking() {
 
     if (error) throw error;
     booking.agendamentoId = data;
+
+    if (booking.clientId) {
+      const { error: linkError } = await db
+        .from("agendamentos")
+        .update({ cliente_id: booking.clientId })
+        .eq("id", booking.agendamentoId);
+
+      if (linkError) {
+        console.warn("Agendamento criado, mas não foi possível vincular o cliente.", linkError);
+      }
+    }
   } catch (error) {
     console.error("Erro ao criar agendamento:", error);
     const message = error?.message || "Não foi possível confirmar o agendamento.";
@@ -1466,8 +1812,9 @@ function resetBooking() {
     dateISO: "",
     time: "",
     agendamentoId: null,
-    name: "",
-    phone: ""
+    name: clientAccount?.nome || "",
+    phone: clientAccount?.whatsapp || "",
+    clientId: clientAccount ? Number(clientAccount.id) : null
   };
 
 
@@ -1517,6 +1864,191 @@ function resetBooking() {
 }
 
 </script>
+
+
+<!-- =========================
+     ÁREA DO CLIENTE
+========================= -->
+
+<div class="client-modal hidden" id="clientAuthModal">
+  <div class="client-modal-backdrop" onclick="closeClientAuth()"></div>
+
+  <div class="client-modal-card">
+
+    <button
+      type="button"
+      class="client-modal-close"
+      onclick="closeClientAuth()"
+      aria-label="Fechar"
+    >×</button>
+
+    <div id="clientAuthContent">
+
+      <span class="booking-small">ÁREA DO CLIENTE</span>
+
+      <h3 id="clientAuthTitle">Entrar</h3>
+
+      <p id="clientAuthSubtitle">
+        Acesse seus agendamentos usando seu WhatsApp.
+      </p>
+
+      <div class="client-auth-tabs">
+        <button
+          type="button"
+          id="clientLoginTab"
+          class="client-auth-tab active"
+          onclick="showClientLogin()"
+        >
+          Entrar
+        </button>
+
+        <button
+          type="button"
+          id="clientRegisterTab"
+          class="client-auth-tab"
+          onclick="showClientRegister()"
+        >
+          Criar conta
+        </button>
+      </div>
+
+      <div id="clientLoginForm">
+
+        <div class="field">
+          <label for="clientLoginPhone">WhatsApp</label>
+          <input
+            id="clientLoginPhone"
+            type="tel"
+            inputmode="numeric"
+            placeholder="(16) 99999-9999"
+            maxlength="15"
+          >
+        </div>
+
+        <div class="field">
+          <label for="clientLoginPassword">Senha</label>
+          <input
+            id="clientLoginPassword"
+            type="password"
+            placeholder="Sua senha"
+            maxlength="72"
+          >
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-dark client-auth-submit"
+          onclick="loginClient()"
+        >
+          Entrar
+        </button>
+
+      </div>
+
+      <div id="clientRegisterForm" class="hidden">
+
+        <div class="field">
+          <label for="clientRegisterName">Nome completo</label>
+          <input
+            id="clientRegisterName"
+            type="text"
+            placeholder="Nome e sobrenome"
+            maxlength="80"
+          >
+        </div>
+
+        <div class="field">
+          <label for="clientRegisterPhone">WhatsApp</label>
+          <input
+            id="clientRegisterPhone"
+            type="tel"
+            inputmode="numeric"
+            placeholder="(16) 99999-9999"
+            maxlength="15"
+          >
+        </div>
+
+        <div class="field">
+          <label for="clientRegisterPassword">Senha</label>
+          <input
+            id="clientRegisterPassword"
+            type="password"
+            placeholder="Mínimo de 6 caracteres"
+            maxlength="72"
+          >
+        </div>
+
+        <div class="field">
+          <label for="clientRegisterPasswordConfirm">Confirmar senha</label>
+          <input
+            id="clientRegisterPasswordConfirm"
+            type="password"
+            placeholder="Digite a senha novamente"
+            maxlength="72"
+          >
+        </div>
+
+        <button
+          type="button"
+          class="btn btn-dark client-auth-submit"
+          onclick="registerClient()"
+        >
+          Criar minha conta
+        </button>
+
+      </div>
+
+      <div id="clientAuthMessage" class="client-auth-message hidden"></div>
+
+    </div>
+
+    <div id="clientAccountContent" class="hidden">
+
+      <span class="booking-small">MINHA CONTA</span>
+
+      <h3 id="clientWelcomeTitle">Olá!</h3>
+
+      <p>
+        Sua conta está conectada ao seu WhatsApp.
+      </p>
+
+      <div class="client-account-card">
+        <div>
+          <span>Nome</span>
+          <strong id="clientAccountName">—</strong>
+        </div>
+
+        <div>
+          <span>WhatsApp</span>
+          <strong id="clientAccountPhone">—</strong>
+        </div>
+      </div>
+
+      <div class="client-account-actions">
+
+        <button
+          type="button"
+          class="btn btn-dark"
+          onclick="goToBookingFromAccount()"
+        >
+          Agendar horário
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-outline"
+          onclick="logoutClient()"
+        >
+          Sair
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
 
 </body>
 </html>
