@@ -1098,7 +1098,7 @@
 
           <label>Data</label>
 
-          <input type="date">
+          <input id="blockDate" type="date">
 
         </div>
 
@@ -1195,7 +1195,7 @@
             Início
           </label>
 
-          <input type="time">
+          <input id="blockStart" type="time">
 
         </div>
 
@@ -1206,7 +1206,7 @@
             Final
           </label>
 
-          <input type="time">
+          <input id="blockEnd" type="time">
 
         </div>
 
@@ -1222,13 +1222,15 @@
 
         <input
           type="text"
-          placeholder="Ex.: Almoço, compromisso..."
+          id="blockReason" placeholder="Ex.: Almoço, compromisso..."
         >
 
       </div>
 
     </div>
 
+
+    <div id="blockMessage" class="schedule-message hidden"></div>
 
     <div class="modal-footer">
 
@@ -1241,7 +1243,7 @@
 
       <button
         class="btn btn-primary"
-        onclick="demoBlock()"
+        id="saveBlockButton" onclick="saveBlock()"
       >
         Bloquear
       </button>
@@ -1949,21 +1951,91 @@ function closeAppointmentModal() {
    BLOQUEIO
 =========================================== */
 
+function setBlockMessage(message = "", type = "info") {
+  const box = document.getElementById("blockMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
+
 function openBlockModal() {
-
-  openModal(
-    "blockModal"
-  );
-
+  document.getElementById("blockDate").value = localISODate(agendaDate);
+  document.getElementById("blockStart").value = "";
+  document.getElementById("blockEnd").value = "";
+  document.getElementById("blockReason").value = "";
+  setBlockMessage("");
+  openModal("blockModal");
 }
 
 
 function closeBlockModal() {
+  closeModal("blockModal");
+}
 
-  closeModal(
-    "blockModal"
-  );
 
+async function saveBlock() {
+  const date = document.getElementById("blockDate").value;
+  const start = document.getElementById("blockStart").value;
+  const end = document.getElementById("blockEnd").value;
+  const reason = document.getElementById("blockReason").value.trim();
+  const button = document.getElementById("saveBlockButton");
+
+  if (!date) return setBlockMessage("Escolha a data do bloqueio.", "error");
+  if (!start || !end) return setBlockMessage("Informe o horário inicial e final.", "error");
+  if (end <= start) return setBlockMessage("O horário final precisa ser depois do horário inicial.", "error");
+
+  button.disabled = true;
+  button.textContent = "Bloqueando...";
+  setBlockMessage("Salvando bloqueio...", "info");
+
+  try {
+    const professionalId = await getProfessionalId();
+
+    const { data: appointments, error: appointmentsError } = await db
+      .from("agendamentos")
+      .select("id,hora_inicio,hora_fim,status,cliente_nome")
+      .eq("profissional_id", professionalId)
+      .eq("data", date);
+
+    if (appointmentsError) throw appointmentsError;
+
+    const conflict = (appointments || []).find(item => {
+      const status = String(item.status || "").toLowerCase();
+      if (status === "cancelado") return false;
+      const appointmentStart = String(item.hora_inicio || "").slice(0,5);
+      const appointmentEnd = String(item.hora_fim || "").slice(0,5);
+      return start < appointmentEnd && end > appointmentStart;
+    });
+
+    if (conflict) {
+      setBlockMessage(
+        `Já existe um atendimento de ${String(conflict.hora_inicio).slice(0,5)} às ${String(conflict.hora_fim).slice(0,5)} para ${conflict.cliente_nome || "um cliente"}.`,
+        "error"
+      );
+      return;
+    }
+
+    const inicio = `${date}T${start}:00-03:00`;
+    const fim = `${date}T${end}:00-03:00`;
+
+    const { error } = await db.from("bloqueios").insert({
+      profissional_id: professionalId,
+      inicio,
+      fim,
+      motivo: reason || ""
+    });
+
+    if (error) throw error;
+
+    closeBlockModal();
+    await loadAgenda();
+    alert("Horário bloqueado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao bloquear horário:", error);
+    setBlockMessage("Não foi possível bloquear o horário. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Bloquear";
+  }
 }
 
 
@@ -2033,15 +2105,6 @@ function demoSaveAppointment() {
 
   alert(
     "O cadastro visual está funcionando. A gravação no banco será conectada ao Supabase."
-  );
-
-}
-
-
-function demoBlock() {
-
-  alert(
-    "O bloqueio será conectado à tabela de bloqueios do Supabase."
   );
 
 }
