@@ -1813,7 +1813,11 @@ async function loadAgenda() {
     const appointments = data || [];
     const activeAppointments = appointments.filter(item => String(item.status).toLowerCase() !== "cancelado");
     const completed = appointments.filter(item => String(item.status).toLowerCase() === "concluido");
-    const forecast = activeAppointments.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+    const forecastAppointments = appointments.filter(item => {
+      const status = String(item.status || "").toLowerCase();
+      return status === "confirmado" || status === "concluido";
+    });
+    const forecast = forecastAppointments.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
     const revenue = completed.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
 
     document.getElementById("todayAppointmentsCount").textContent = activeAppointments.length;
