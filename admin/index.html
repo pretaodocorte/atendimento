@@ -1597,6 +1597,10 @@ function openServiceModal() {
   openModal("serviceModal");
 }
 
+function closeServiceModal() {
+  closeModal("serviceModal");
+}
+
 function editService(id) {
   const item = servicesCache.find(service => Number(service.id) === Number(id));
   if (!item) return;
