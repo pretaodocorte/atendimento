@@ -67,6 +67,7 @@
     .agenda-block-item:first-child{border-top:0}.agenda-block-time{font-size:16px;font-weight:900;color:#8d2f24}.agenda-block-data strong{display:block;font-size:11px;color:#4b3020}.agenda-block-data span{display:block;margin-top:4px;font-size:9px;color:#8b7d72}.agenda-block-tag{display:inline-block;margin-top:6px;padding:5px 8px;border-radius:100px;background:#fff0ee;color:#8d2f24;font-size:7px;font-weight:900;text-transform:uppercase}
     .financial-periods{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16)}.financial-periods .day-stat{margin-top:8px}
     @media(max-width:680px){.agenda-block-item{grid-template-columns:70px 1fr}.agenda-block-item .agenda-actions-real{grid-column:1/3}}
+    .clients-list-real{padding:0 20px 20px}.client-row-real{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(150px,.8fr) 110px 110px;gap:18px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}.client-row-real strong{display:block;font-size:12px;color:var(--text)}.client-row-real span{display:block;margin-top:4px;font-size:9px;color:var(--muted)}.client-count-real{font-weight:900;color:var(--brown)}.client-last-real{font-size:10px;color:var(--muted)}@media(max-width:680px){.client-row-real{grid-template-columns:1fr auto}.client-row-real>div:nth-child(2),.client-row-real>div:nth-child(4){grid-column:1/3}}
   </style>
 </head>
 
@@ -668,7 +669,7 @@
             TOTAL DE CLIENTES
           </span>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="clientsTotalCount">
             0
           </strong>
 
@@ -685,7 +686,7 @@
             NOVOS ESTE MÊS
           </span>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="clientsNewMonthCount">
             0
           </strong>
 
@@ -702,7 +703,7 @@
             RETORNOS
           </span>
 
-          <strong class="summary-number">
+          <strong class="summary-number" id="clientsReturnCount">
             0
           </strong>
 
@@ -736,6 +737,7 @@
             <input
               type="text"
               placeholder="Nome ou telefone"
+              id="clientSearch"
             >
 
           </div>
@@ -743,22 +745,12 @@
         </div>
 
 
-        <div class="large-empty">
-
-          <div class="empty-symbol">
-            ♟
+        <div id="clientsList">
+          <div class="large-empty">
+            <div class="empty-symbol">♟</div>
+            <h3>Carregando clientes...</h3>
+            <p>Buscando os cadastros e o histórico de atendimentos.</p>
           </div>
-
-          <h3>
-            Nenhum cliente ainda
-          </h3>
-
-          <p>
-            Assim que o primeiro cliente
-            realizar um agendamento,
-            ele aparecerá aqui.
-          </p>
-
         </div>
 
       </div>
@@ -1589,6 +1581,85 @@ async function saveService() {
 document.getElementById("serviceSearch").addEventListener("input", event => renderServices(event.target.value));
 
 /* ==========================================
+   CLIENTES - SUPABASE
+=========================================== */
+let clientsCache = [];
+let clientsLoaded = false;
+
+function formatPhoneBR(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  return value || "Sem telefone";
+}
+
+function formatDateBR(value) {
+  if (!value) return "—";
+  const [y,m,d] = String(value).slice(0,10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "—";
+}
+
+function renderClients(filter = "") {
+  const list = document.getElementById("clientsList");
+  const term = filter.trim().toLowerCase().replace(/\D/g, "");
+  const rawTerm = filter.trim().toLowerCase();
+  const filtered = clientsCache.filter(item =>
+    String(item.nome || "").toLowerCase().includes(rawTerm) ||
+    String(item.telefone || "").replace(/\D/g, "").includes(term)
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="large-empty"><div class="empty-symbol">♟</div><h3>${rawTerm ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}</h3><p>${rawTerm ? "Tente buscar por outro nome ou telefone." : "Os clientes cadastrados aparecerão aqui."}</p></div>`;
+    return;
+  }
+
+  list.innerHTML = `<div class="clients-list-real">${filtered.map(item => `
+    <div class="client-row-real">
+      <div><strong>${escapeHtml(item.nome || "Cliente")}</strong><span>Cliente #${item.id}</span></div>
+      <div><strong>${escapeHtml(formatPhoneBR(item.telefone))}</strong><span>Contato</span></div>
+      <div><strong class="client-count-real">${item.atendimentos}</strong><span>atendimento${item.atendimentos === 1 ? "" : "s"}</span></div>
+      <div><strong class="client-last-real">${item.ultimoAtendimento ? formatDateBR(item.ultimoAtendimento) : "—"}</strong><span>último atendimento</span></div>
+    </div>`).join("")}</div>`;
+}
+
+async function loadClients() {
+  const list = document.getElementById("clientsList");
+  list.innerHTML = `<div class="large-empty"><div class="empty-symbol">♟</div><h3>Carregando clientes...</h3><p>Buscando os cadastros e o histórico.</p></div>`;
+  try {
+    const [{ data: clients, error: clientsError }, { data: appointments, error: appointmentsError }] = await Promise.all([
+      db.from("clientes").select("id,nome,telefone,created_at").order("nome", { ascending: true }),
+      db.from("agendamentos").select("cliente_id,cliente_telefone,data,status")
+    ]);
+    if (clientsError) throw clientsError;
+    if (appointmentsError) throw appointmentsError;
+
+    const allAppointments = (appointments || []).filter(a => String(a.status || "").toLowerCase() !== "cancelado");
+    clientsCache = (clients || []).map(client => {
+      const phone = String(client.telefone || "").replace(/\D/g, "");
+      const history = allAppointments.filter(a =>
+        (a.cliente_id && Number(a.cliente_id) === Number(client.id)) ||
+        (!a.cliente_id && phone && String(a.cliente_telefone || "").replace(/\D/g, "") === phone)
+      );
+      const dates = history.map(a => a.data).filter(Boolean).sort();
+      return { ...client, atendimentos: history.length, ultimoAtendimento: dates.at(-1) || null };
+    });
+
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    document.getElementById("clientsTotalCount").textContent = clientsCache.length;
+    document.getElementById("clientsNewMonthCount").textContent = clientsCache.filter(c => String(c.created_at || "").startsWith(monthPrefix)).length;
+    document.getElementById("clientsReturnCount").textContent = clientsCache.filter(c => c.atendimentos >= 2).length;
+    clientsLoaded = true;
+    renderClients(document.getElementById("clientSearch").value);
+  } catch (error) {
+    console.error(error);
+    list.innerHTML = `<div class="large-empty"><div class="empty-symbol">!</div><h3>Não foi possível carregar os clientes</h3><p>Verifique a conexão e tente novamente.</p></div>`;
+  }
+}
+
+document.getElementById("clientSearch").addEventListener("input", event => renderClients(event.target.value));
+
+/* ==========================================
    NAVEGAÇÃO
 =========================================== */
 
@@ -1687,6 +1758,7 @@ function goToPage(page) {
 
 
   if (page === "servicos" && !servicesLoaded) loadServices();
+  if (page === "clientes" && !clientsLoaded) loadClients();
   if (page === "agenda") loadAgenda();
 
   window.scrollTo({
