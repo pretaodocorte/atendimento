@@ -462,6 +462,150 @@
 
         </section>
 
+        <!-- PAINEL LATERAL -->
+
+        <aside class="day-panel">
+
+          <div class="day-card dark-card">
+
+            <span class="section-eyebrow gold">
+              RESUMO
+            </span>
+
+            <h3 id="daySummaryTitle">
+              Dia tranquilo por enquanto.
+            </h3>
+
+            <p id="daySummaryText">
+              Nenhum atendimento foi registrado para hoje.
+            </p>
+
+            <div class="day-separator"></div>
+
+            <div class="day-stat">
+              <span>Atendimentos</span>
+              <strong id="dayTotalAppointments">0</strong>
+            </div>
+
+            <div class="day-stat">
+              <span>Concluídos</span>
+              <strong id="dayCompletedAppointments">0</strong>
+            </div>
+
+            <div class="day-stat">
+              <span>Faturamento</span>
+              <strong id="dayRevenue">R$ 0,00</strong>
+            </div>
+
+          </div>
+
+          <div class="day-card">
+
+            <span class="section-eyebrow">
+              ATALHOS
+            </span>
+
+            <button class="quick-action" onclick="goToPage('servicos')">
+              <span>✂</span>
+              <div>
+                <strong>Gerenciar serviços</strong>
+                <small>Preços e duração</small>
+              </div>
+              <b>›</b>
+            </button>
+
+            <button class="quick-action" onclick="goToPage('clientes')">
+              <span>♟</span>
+              <div>
+                <strong>Ver clientes</strong>
+                <small>Histórico e contatos</small>
+              </div>
+              <b>›</b>
+            </button>
+
+          </div>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================================
+         SERVIÇOS
+    =========================================== -->
+
+    <section class="page" id="servicos">
+
+      <div class="page-intro">
+
+        <div>
+          <span class="section-eyebrow">CATÁLOGO</span>
+          <h2>Serviços</h2>
+          <p>
+            Controle os serviços oferecidos,
+            preços, duração e disponibilidade.
+          </p>
+        </div>
+
+        <button class="btn btn-primary" onclick="openServiceModal()">
+          <span>＋</span>
+          Novo serviço
+        </button>
+
+      </div>
+
+      <div class="services-overview">
+        <div>
+          <span>Serviços ativos</span>
+          <strong id="activeServicesCount">0</strong>
+        </div>
+        <div>
+          <span>Preço médio</span>
+          <strong id="averageServicePrice">R$ 0,00</strong>
+        </div>
+        <div>
+          <span>Mais agendado</span>
+          <strong>—</strong>
+        </div>
+      </div>
+
+      <div class="card">
+
+        <div class="table-header">
+          <div>
+            <h3>Seus serviços</h3>
+            <p>
+              Edite ou adicione serviços
+              oferecidos aos clientes.
+            </p>
+          </div>
+
+          <div class="search">
+            <span>⌕</span>
+            <input type="text" placeholder="Buscar serviço" id="serviceSearch">
+          </div>
+        </div>
+
+        <div id="serviceMessage" class="service-message hidden"></div>
+
+        <div class="service-table">
+          <div class="service-table-head">
+            <span>SERVIÇO</span>
+            <span>PREÇO</span>
+            <span>DURAÇÃO</span>
+            <span>STATUS</span>
+            <span></span>
+          </div>
+
+          <div id="servicesList"></div>
+        </div>
+
+      </div>
+
+    </section>
+
 
     <!-- ==========================================
          CLIENTES
