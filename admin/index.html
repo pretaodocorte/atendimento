@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Painel Administrativo | Pretão do Corte</title>
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+  <aside class="sidebar">
+
+    <div class="brand">
+      <img src="../logo.png" alt="Pretão do Corte">
+
+      <div>
+        <strong>Pretão do Corte</strong>
+        <span>Painel administrativo</span>
+      </div>
+    </div>
+
+    <nav class="menu">
+
+      <button class="menu-item active" data-page="agenda">
+        <span>▣</span>
+        Agenda
+      </button>
+
+      <button class="menu-item" data-page="servicos">
+        <span>✂</span>
+        Serviços
+      </button>
+
+      <button class="menu-item" data-page="clientes">
+        <span>♙</span>
+        Clientes
+      </button>
+
+      <button class="menu-item" data-page="configuracoes">
+        <span>⚙</span>
+        Configurações
+      </button>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <span>Sistema</span>
+      <strong>Harri Novaes Digital</strong>
+    </div>
+
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <div>
+        <span class="top-label">PAINEL ADMINISTRATIVO</span>
+        <h1 id="pageTitle">Agenda</h1>
+      </div>
+
+      <div class="user">
+        <div class="avatar">K</div>
+
+        <div>
+          <strong>Kaique Vital</strong>
+          <span>Administrador</span>
+        </div>
+      </div>
+
+    </header>
+
+
+    <!-- ==========================
+         AGENDA
+    =========================== -->
+
+    <section class="page active" id="agenda">
+
+      <div class="welcome">
+
+        <div>
+          <span class="eyebrow">VISÃO GERAL</span>
+          <h2>Olá, Kaique 👋</h2>
+          <p id="todayText"></p>
+        </div>
+
+        <button class="primary-button">
+          + Novo agendamento
+        </button>
+
+      </div>
+
+
+      <div class="stats">
+
+        <article class="stat-card">
+          <span>Agendamentos hoje</span>
+          <strong>0</strong>
+          <small>Nenhum atendimento cadastrado</small>
+        </article>
+
+        <article class="stat-card">
+          <span>Próximo cliente</span>
+          <strong>—</strong>
+          <small>Agenda livre</small>
+        </article>
+
+        <article class="stat-card">
+          <span>Clientes</span>
+          <strong>0</strong>
+          <small>Cadastrados no sistema</small>
+        </article>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div class="panel-header">
+          <div>
+            <span class="eyebrow">HOJE</span>
+            <h3>Agenda do dia</h3>
+          </div>
+
+          <button class="secondary-button">
+            Bloquear horário
+          </button>
+        </div>
+
+
+        <div class="empty-state">
+
+          <div class="empty-icon">✂</div>
+
+          <h3>Nenhum agendamento hoje</h3>
+
+          <p>
+            Quando os clientes começarem a agendar
+            pelo site, os horários aparecerão aqui.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================
+         SERVIÇOS
+    =========================== -->
+
+    <section class="page" id="servicos">
+
+      <div class="page-heading">
+
+        <div>
+          <span class="eyebrow">GERENCIAMENTO</span>
+          <h2>Serviços</h2>
+          <p>
+            Cadastre os serviços oferecidos,
+            preços e duração de cada atendimento.
+          </p>
+        </div>
+
+        <button
+          class="primary-button"
+          onclick="openServiceModal()"
+        >
+          + Novo serviço
+        </button>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div class="service-list">
+
+          <article class="service-row">
+
+            <div class="service-icon">✂</div>
+
+            <div class="service-info">
+              <strong>Corte masculino</strong>
+              <span>Serviço ativo</span>
+            </div>
+
+            <div class="service-data">
+              <span>Preço</span>
+              <strong>R$ 30,00</strong>
+            </div>
+
+            <div class="service-data">
+              <span>Duração</span>
+              <strong>A definir</strong>
+            </div>
+
+            <button
+              class="edit-button"
+              onclick="editExampleService()"
+            >
+              Editar
+            </button>
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================
+         CLIENTES
+    =========================== -->
+
+    <section class="page" id="clientes">
+
+      <div class="page-heading">
+
+        <div>
+          <span class="eyebrow">CADASTROS</span>
+          <h2>Clientes</h2>
+          <p>
+            Os clientes aparecerão automaticamente
+            conforme realizarem agendamentos.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="panel">
+
+        <div class="search-box">
+          <input
+            type="text"
+            placeholder="Buscar cliente por nome ou telefone..."
+          >
+        </div>
+
+
+        <div class="empty-state">
+
+          <div class="empty-icon">♙</div>
+
+          <h3>Nenhum cliente cadastrado</h3>
+
+          <p>
+            Os clientes do Pretão do Corte
+            aparecerão aqui.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================
+         CONFIGURAÇÕES
+    =========================== -->
+
+    <section class="page" id="configuracoes">
+
+      <div class="page-heading">
+
+        <div>
+          <span class="eyebrow">SISTEMA</span>
+          <h2>Configurações</h2>
+          <p>
+            Controle os dados básicos do
+            Pretão do Corte.
+          </p>
+        </div>
+
+      </div>
+
+
+      <div class="panel form-panel">
+
+        <div class="form-grid">
+
+          <div class="field">
+            <label>Nome da barbearia</label>
+            <input
+              type="text"
+              value="Pretão do Corte"
+            >
+          </div>
+
+          <div class="field">
+            <label>Profissional</label>
+            <input
+              type="text"
+              value="Kaique Vital"
+            >
+          </div>
+
+          <div class="field">
+            <label>WhatsApp</label>
+            <input
+              type="text"
+              value="(16) 99363-3521"
+            >
+          </div>
+
+          <div class="field">
+            <label>Cidade</label>
+            <input
+              type="text"
+              value="Ribeirão Preto - SP"
+            >
+          </div>
+
+        </div>
+
+        <button class="primary-button">
+          Salvar alterações
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+  <!-- ==========================
+       MODAL SERVIÇO
+  =========================== -->
+
+  <div class="modal-backdrop" id="serviceModal">
+
+    <div class="modal">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="eyebrow">SERVIÇO</span>
+          <h2 id="modalTitle">Novo serviço</h2>
+        </div>
+
+        <button
+          class="modal-close"
+          onclick="closeServiceModal()"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="field">
+        <label>Nome do serviço</label>
+
+        <input
+          id="serviceName"
+          type="text"
+          placeholder="Ex.: Barba"
+        >
+      </div>
+
+
+      <div class="modal-grid">
+
+        <div class="field">
+          <label>Preço</label>
+
+          <input
+            id="servicePrice"
+            type="number"
+            placeholder="30,00"
+          >
+        </div>
+
+
+        <div class="field">
+          <label>Duração</label>
+
+          <select id="serviceDuration">
+            <option value="">Selecione</option>
+            <option value="20">20 minutos</option>
+            <option value="30">30 minutos</option>
+            <option value="40">40 minutos</option>
+            <option value="45">45 minutos</option>
+            <option value="60">60 minutos</option>
+            <option value="90">90 minutos</option>
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div class="field">
+        <label>Descrição</label>
+
+        <textarea
+          id="serviceDescription"
+          placeholder="Descrição opcional do serviço"
+        ></textarea>
+      </div>
+
+
+      <label class="switch-row">
+
+        <input
+          id="serviceActive"
+          type="checkbox"
+          checked
+        >
+
+        <span>
+          Serviço disponível para agendamento
+        </span>
+
+      </label>
+
+
+      <div class="modal-actions">
+
+        <button
+          class="secondary-button"
+          onclick="closeServiceModal()"
+        >
+          Cancelar
+        </button>
+
+        <button
+          class="primary-button"
+          onclick="demoSave()"
+        >
+          Salvar serviço
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+<script>
+
+const menuItems =
+  document.querySelectorAll(".menu-item");
+
+const pages =
+  document.querySelectorAll(".page");
+
+const pageTitle =
+  document.getElementById("pageTitle");
+
+
+menuItems.forEach(item => {
+
+  item.addEventListener("click", () => {
+
+    menuItems.forEach(button => {
+      button.classList.remove("active");
+    });
+
+    pages.forEach(page => {
+      page.classList.remove("active");
+    });
+
+    item.classList.add("active");
+
+    const page =
+      item.dataset.page;
+
+    document
+      .getElementById(page)
+      .classList.add("active");
+
+    pageTitle.textContent =
+      item.textContent.trim();
+
+  });
+
+});
+
+
+const today =
+  new Date();
+
+const formattedDate =
+  today.toLocaleDateString(
+    "pt-BR",
+    {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }
+  );
+
+document.getElementById(
+  "todayText"
+).textContent =
+  formattedDate.charAt(0).toUpperCase()
+  + formattedDate.slice(1);
+
+
+function openServiceModal() {
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    "Novo serviço";
+
+  document.getElementById(
+    "serviceName"
+  ).value = "";
+
+  document.getElementById(
+    "servicePrice"
+  ).value = "";
+
+  document.getElementById(
+    "serviceDuration"
+  ).value = "";
+
+  document.getElementById(
+    "serviceDescription"
+  ).value = "";
+
+  document.getElementById(
+    "serviceActive"
+  ).checked = true;
+
+  document.getElementById(
+    "serviceModal"
+  ).classList.add("show");
+
+}
+
+
+function editExampleService() {
+
+  document.getElementById(
+    "modalTitle"
+  ).textContent =
+    "Editar serviço";
+
+  document.getElementById(
+    "serviceName"
+  ).value =
+    "Corte masculino";
+
+  document.getElementById(
+    "servicePrice"
+  ).value =
+    "30";
+
+  document.getElementById(
+    "serviceDuration"
+  ).value =
+    "";
+
+  document.getElementById(
+    "serviceDescription"
+  ).value =
+    "Corte masculino";
+
+  document.getElementById(
+    "serviceActive"
+  ).checked = true;
+
+  document.getElementById(
+    "serviceModal"
+  ).classList.add("show");
+
+}
+
+
+function closeServiceModal() {
+
+  document.getElementById(
+    "serviceModal"
+  ).classList.remove("show");
+
+}
+
+
+function demoSave() {
+
+  alert(
+    "A tela está pronta. No próximo passo conectaremos este botão ao Supabase."
+  );
+
+}
+
+
+document
+  .getElementById("serviceModal")
+  .addEventListener(
+    "click",
+    function(event) {
+
+      if (event.target === this) {
+        closeServiceModal();
+      }
+
+    }
+  );
+
+</script>
+
+</body>
+</html>
