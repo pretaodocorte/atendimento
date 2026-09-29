@@ -49,14 +49,20 @@
     .service-empty-real{padding:54px 24px;text-align:center;color:#8b7d72}.service-empty-real strong{display:block;color:#2f2119;font-size:18px;margin-bottom:7px}
     .status.inactive-status{background:#f1efec;color:#786e67}.status.inactive-status i{background:#9a918a}
     .agenda-real-list{padding:8px 20px 20px}
-    .agenda-item-real{display:grid;grid-template-columns:82px minmax(0,1.4fr) minmax(120px,.8fr) auto;gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}
+    .agenda-item-real{display:grid;grid-template-columns:82px minmax(0,1.25fr) minmax(110px,.7fr) auto minmax(180px,auto);gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}
     .agenda-time-real{font-size:18px;font-weight:900;color:var(--brown)}
     .agenda-client-real strong,.agenda-service-real strong{display:block;font-size:11px;color:var(--text)}
     .agenda-client-real span,.agenda-service-real span{display:block;margin-top:4px;font-size:8px;color:var(--muted)}
     .agenda-status-real{padding:6px 9px;border-radius:100px;font-size:7px;font-weight:900;text-transform:uppercase;background:#f3eee8;color:var(--brown)}
     .agenda-status-real.concluido{background:#eaf6ef;color:#2c8057}
     .agenda-status-real.cancelado,.agenda-status-real.faltou{background:#fff0ee;color:#8d2f24}
-    @media(max-width:680px){.agenda-item-real{grid-template-columns:64px 1fr auto}.agenda-service-real{grid-column:2/4}.agenda-real-list{padding:5px 15px 18px}}
+    .agenda-actions-real{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .agenda-action-btn{border:1px solid #ded5cd;background:#fff;border-radius:8px;padding:7px 9px;font-size:7px;font-weight:900;text-transform:uppercase;cursor:pointer;color:#4b3020}
+    .agenda-action-btn:hover{background:#f7f1eb}
+    .agenda-action-btn.success{border-color:#cfe7d3;color:#2c8057}
+    .agenda-action-btn.danger{border-color:#efc5bf;color:#8d2f24}
+    .agenda-action-btn:disabled{opacity:.5;cursor:wait}
+    @media(max-width:680px){.agenda-item-real{grid-template-columns:64px 1fr auto}.agenda-service-real{grid-column:2/4}.agenda-actions-real{grid-column:1/4;justify-content:flex-start}.agenda-real-list{padding:5px 15px 18px}}
   </style>
 </head>
 
@@ -1860,6 +1866,15 @@ async function loadAgenda() {
         <span class="agenda-status-real ${escapeHtml(String(item.status || "").toLowerCase())}">
           ${escapeHtml(statusLabel(item.status))}
         </span>
+        <div class="agenda-actions-real">
+          ${String(item.status).toLowerCase() === "confirmado" ? `
+            <button class="agenda-action-btn success" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'concluido', this)">Concluir</button>
+            <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'faltou', this)">Faltou</button>
+            <button class="agenda-action-btn danger" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'cancelado', this)">Cancelar</button>
+          ` : `
+            <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'confirmado', this)">Reabrir</button>
+          `}
+        </div>
       </div>
     `).join("")}</div>`;
 
@@ -1871,6 +1886,35 @@ async function loadAgenda() {
         <h3>Não foi possível carregar a agenda</h3>
         <p>Atualize a página e tente novamente.</p>
       </div>`;
+  }
+}
+
+async function updateAppointmentStatus(appointmentId, newStatus, button) {
+  const labels = {
+    concluido: "marcar este atendimento como concluído",
+    faltou: "marcar que o cliente faltou",
+    cancelado: "cancelar este agendamento",
+    confirmado: "reabrir este agendamento como confirmado"
+  };
+
+  if (!confirm(`Deseja ${labels[newStatus] || "alterar o status deste agendamento"}?`)) return;
+
+  const buttons = button?.closest(".agenda-actions-real")?.querySelectorAll("button") || [];
+  buttons.forEach(item => item.disabled = true);
+
+  try {
+    const { error } = await db
+      .from("agendamentos")
+      .update({ status: newStatus })
+      .eq("id", appointmentId);
+
+    if (error) throw error;
+
+    await loadAgenda();
+  } catch (error) {
+    console.error("Erro ao atualizar agendamento:", error);
+    alert("Não foi possível atualizar o agendamento. Tente novamente.");
+    buttons.forEach(item => item.disabled = false);
   }
 }
 
