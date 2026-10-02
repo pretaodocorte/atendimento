@@ -1834,7 +1834,7 @@ function renderProducts(){
   document.getElementById("productsLowCount").textContent=productsCache.filter(p=>p.ativo&&Number(p.estoque)>0&&Number(p.estoque)<=Number(p.estoque_minimo||0)).length;
   document.getElementById("productsOutCount").textContent=productsCache.filter(p=>p.ativo&&Number(p.estoque)<=0).length;
   if(!filtered.length){list.innerHTML='<div class="large-empty product-empty"><div class="empty-symbol">📦</div><h3>Nenhum produto encontrado</h3><p>Cadastre o primeiro produto da barbearia.</p></div>';return;}
-  list.innerHTML=filtered.map(p=>{const [cls,label]=productStockClass(p);return `<article class="product-card"><div class="product-photo">${p.imagem_url?`<img src="${escapeHtml(p.imagem_url)}" alt="${escapeHtml(p.nome||'Produto')}">`:'<span>📦</span>'}</div><div class="product-body"><div class="product-meta">${escapeHtml(p.categoria||'Outros')}${p.codigo?` · ${escapeHtml(p.codigo)}`:''}</div><h3>${escapeHtml(p.nome||'Produto')}</h3><div class="product-description">${escapeHtml(p.descricao||'Sem descrição.')}</div><div class="product-price">${moneyBR(p.preco)}</div><div class="product-stock"><span class="product-badge ${cls}">${escapeHtml(label)}</span>${p.destaque?'<span class="product-badge">★ Destaque</span>':''}${!p.ativo?'<span class="product-badge out">Desativado</span>':''}</div><div class="product-actions"><button class="agenda-action-btn" onclick="openEditProductModal(${Number(p.id)})">✏ Editar</button><button class="agenda-action-btn" onclick="adjustProductStock(${Number(p.id)})">📦 Estoque</button><button class="agenda-action-btn ${p.ativo?'danger':'success'}" onclick="toggleProductActive(${Number(p.id)},${p.ativo?'false':'true'})">${p.ativo?'🙈 Desativar':'✓ Ativar'}</button></div></div></article>`}).join("");
+  list.innerHTML=filtered.map(p=>{const [cls,label]=productStockClass(p);return `<article class="product-card"><div class="product-photo">${p.imagem_url?`<img src="${escapeHtml(p.imagem_url)}" alt="${escapeHtml(p.nome||'Produto')}">`:'<span>📦</span>'}</div><div class="product-body"><div class="product-meta">${escapeHtml(p.categoria||'Outros')}${p.codigo?` · ${escapeHtml(p.codigo)}`:''}</div><h3>${escapeHtml(p.nome||'Produto')}</h3><div class="product-description">${escapeHtml(p.descricao||'Sem descrição.')}</div><div class="product-price">${moneyBR(p.preco)}</div><div class="product-stock"><span class="product-badge ${cls}">${escapeHtml(label)}</span>${p.destaque?'<span class="product-badge">★ Destaque</span>':''}${!p.ativo?'<span class="product-badge out">Desativado</span>':''}</div><div class="product-actions"><button class="agenda-action-btn" onclick="openEditProductModal(${Number(p.id)})">✏ Editar</button><button class="agenda-action-btn" onclick="adjustProductStock(${Number(p.id)})">📦 Estoque</button><button class="agenda-action-btn ${p.ativo?'danger':'success'}" onclick="toggleProductActive(${Number(p.id)},${p.ativo?'false':'true'})">${p.ativo?'🙈 Desativar':'✓ Ativar'}</button><button class="agenda-action-btn danger" onclick="deleteProduct(${Number(p.id)})">🗑 Excluir</button></div></div></article>`}).join("");
 }
 function resetProductForm(){editingProductId=null;currentProductImageUrl=null;document.getElementById("productName").value="";document.getElementById("productCategory").value="";document.getElementById("productCode").value="";document.getElementById("productPrice").value="";document.getElementById("productStock").value="0";document.getElementById("productMinStock").value="2";document.getElementById("productDescription").value="";document.getElementById("productFeatured").checked=false;document.getElementById("productActive").checked=true;document.getElementById("productImageFile").value="";const preview=document.getElementById("productImagePreview");preview.src="";preview.style.display="none";setProductMessage("");}
 function openNewProductModal(){resetProductForm();document.getElementById("productModalTitle").textContent="Novo produto";openModal("productModal");}
@@ -1847,6 +1847,39 @@ async function saveProduct(){const button=document.getElementById("saveProductBu
 async function toggleProductActive(id,active){if(!confirm(active?"Deseja ativar este produto?":"Deseja desativar este produto? Ele deixará de aparecer para os clientes."))return;const {error}=await db.from("produtos").update({ativo:active,updated_at:new Date().toISOString()}).eq("id",id);if(error)return alert("Não foi possível alterar o produto.");await loadProducts();}
 async function adjustProductStock(id){const p=productsCache.find(x=>Number(x.id)===Number(id));if(!p)return;const value=prompt(`Estoque atual de ${p.nome}: ${p.estoque}
 Digite a NOVA quantidade em estoque:`,String(p.estoque));if(value===null)return;const stock=Number(value);if(!Number.isInteger(stock)||stock<0)return alert("Digite uma quantidade inteira igual ou maior que zero.");const {error}=await db.from("produtos").update({estoque:stock,updated_at:new Date().toISOString()}).eq("id",id);if(error)return alert("Não foi possível atualizar o estoque.");await loadProducts();}
+
+async function deleteProduct(id){
+  const p=productsCache.find(x=>Number(x.id)===Number(id));
+  if(!p)return;
+
+  const confirmed=confirm(`Excluir "${p.nome}" definitivamente?
+
+Se este produto já tiver reservas no histórico, ele não poderá ser excluído. Nesse caso, use Desativar.`);
+  if(!confirmed)return;
+
+  try{
+    const {count,error:historyError}=await db
+      .from("reservas_produtos")
+      .select("id",{count:"exact",head:true})
+      .eq("produto_id",id);
+
+    if(historyError)throw historyError;
+
+    if(Number(count||0)>0){
+      alert("Este produto já possui reserva no histórico e não pode ser excluído. Use Desativar para retirá-lo da vitrine.");
+      return;
+    }
+
+    const {error}=await db.from("produtos").delete().eq("id",id);
+    if(error)throw error;
+
+    await loadProducts();
+    alert("Produto excluído com sucesso.");
+  }catch(error){
+    console.error(error);
+    alert("Não foi possível excluir o produto. Se ele já possui histórico, use Desativar.");
+  }
+}
 
 async function loadReservations(){const list=document.getElementById("reservationsList");if(!list)return;list.innerHTML='<div class="large-empty"><div class="empty-symbol">🛍</div><h3>Carregando reservas...</h3></div>';try{const {data,error}=await db.from("reservas_produtos").select("id,produto_id,cliente_id,cliente_nome,cliente_telefone,quantidade,status,created_at,produtos(nome,imagem_url,preco)").order("created_at",{ascending:false});if(error)throw error;reservationsCache=data||[];reservationsLoaded=true;renderReservations();}catch(error){console.error(error);list.innerHTML='<div class="large-empty"><div class="empty-symbol">!</div><h3>Não foi possível carregar as reservas</h3></div>';}}
 function renderReservations(){const list=document.getElementById("reservationsList");if(!list)return;document.getElementById("reservationsOpenCount").textContent=reservationsCache.filter(r=>r.status==='reservado').length;document.getElementById("reservationsDeliveredCount").textContent=reservationsCache.filter(r=>r.status==='entregue').length;document.getElementById("reservationsCancelledCount").textContent=reservationsCache.filter(r=>r.status==='cancelado').length;const filter=document.getElementById("reservationFilter")?.value||"todos";const rows=reservationsCache.filter(r=>filter==='todos'||r.status===filter);if(!rows.length){list.innerHTML='<div class="large-empty"><div class="empty-symbol">🛍</div><h3>Nenhuma reserva encontrada</h3><p>As reservas dos clientes aparecerão aqui.</p></div>';return;}list.innerHTML=rows.map(r=>{const phone=String(r.cliente_telefone||'').replace(/\D/g,'');const msg=encodeURIComponent(`Olá, ${r.cliente_nome}! Sobre sua reserva de ${r.quantidade}x ${r.produtos?.nome||'produto'} no Pretão do Corte:`);return `<div class="reservation-row"><div><strong>${escapeHtml(r.produtos?.nome||'Produto')}</strong><span>${r.quantidade} unidade(s) · ${moneyBR(Number(r.produtos?.preco||0)*Number(r.quantidade||0))}</span></div><div><strong>${escapeHtml(r.cliente_nome||'Cliente')}</strong><span>${escapeHtml(phoneBR(r.cliente_telefone))}</span><span class="registered-tag">👤 Cliente cadastrado</span></div><div><strong>${new Date(r.created_at).toLocaleDateString('pt-BR')}</strong><span>Reserva</span></div><div><span class="agenda-status-real ${escapeHtml(r.status)}">${r.status==='reservado'?'Aguardando':r.status==='entregue'?'Entregue':'Cancelada'}</span></div><div class="reservation-actions"><button class="agenda-action-btn" onclick="window.open('https://wa.me/55${phone}?text=${msg}','_blank')">📱 WhatsApp</button>${r.status==='reservado'?`<button class="agenda-action-btn success" onclick="deliverReservation(${Number(r.id)},this)">✓ Entregue</button><button class="agenda-action-btn danger" onclick="cancelReservation(${Number(r.id)},this)">Cancelar</button>`:''}</div></div>`}).join('');}
