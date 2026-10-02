@@ -83,6 +83,36 @@
     .loyalty-invite .btn{width:100%;text-align:center}
     .confirmation-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
     @media(max-width:760px){.nav-client-area{gap:6px}.nav-client-btn{padding-left:12px;padding-right:12px}.nav-book{display:none}.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.gallery-item{border-radius:12px}}
+
+    /* CATÁLOGO DE PRODUTOS */
+    .products-section{background:#f7f1eb}
+    .products-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;margin-top:30px}
+    .product-card{background:#fff;border:1px solid #e7dbd1;border-radius:18px;overflow:hidden;box-shadow:0 10px 28px rgba(35,24,17,.06);display:flex;flex-direction:column}
+    .product-image{aspect-ratio:1/1;background:#eee5dd;overflow:hidden;position:relative}
+    .product-image img{width:100%;height:100%;object-fit:cover;display:block}
+    .product-placeholder{width:100%;height:100%;display:grid;place-items:center;font-size:48px;color:#8c796b}
+    .product-badge{position:absolute;top:12px;left:12px;padding:7px 10px;border-radius:999px;background:#211811;color:#fff;font-size:10px;font-weight:900;letter-spacing:.05em}
+    .product-body{padding:18px;display:flex;flex-direction:column;gap:10px;flex:1}
+    .product-meta{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#917b6b}
+    .product-body h3{margin:0;color:#241912;font-size:20px}
+    .product-description{margin:0;color:#75685f;line-height:1.5;font-size:14px;min-height:42px}
+    .product-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:auto;padding-top:6px}
+    .product-price{font-size:21px;font-weight:900;color:#241912}
+    .product-stock{font-size:11px;font-weight:900;padding:6px 9px;border-radius:999px;background:#eaf6ef;color:#28633a;white-space:nowrap}
+    .product-stock.low{background:#fff5df;color:#8a5b00}
+    .product-stock.out{background:#fff0ee;color:#8d2f24}
+    .product-reserve{width:100%;margin-top:4px}
+    .product-reserve:disabled{opacity:.55;cursor:not-allowed}
+    .products-empty{grid-column:1/-1;padding:35px;text-align:center;background:#fff;border:1px solid #e7dbd1;border-radius:16px;color:#75685f}
+    .product-modal-summary{display:flex;gap:14px;align-items:center;padding:14px;background:#f2e9e1;border-radius:14px;margin:16px 0}
+    .product-modal-summary img{width:74px;height:74px;object-fit:cover;border-radius:12px;background:#e9ded4}
+    .product-modal-summary strong{display:block;color:#241912;font-size:16px}
+    .product-modal-summary span{display:block;margin-top:5px;color:#75685f;font-size:13px}
+    .product-login-note{padding:14px;border-radius:12px;background:#fff7ef;border:1px solid #e4d5c8;color:#75685f;line-height:1.5;margin:14px 0}
+    .product-login-note strong{color:#241912}
+    @media(max-width:900px){.products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.products-grid{grid-template-columns:1fr}.product-description{min-height:0}}
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -107,6 +137,7 @@
     <nav class="desktop-nav">
       <a href="#home">Início</a>
       <a href="#servicos">Serviços</a>
+      <a href="#produtos">Produtos</a>
       <a href="#sobre">Sobre</a>
       <a href="#galeria">Trabalhos</a>
       <a href="#localizacao">Localização</a>
@@ -263,6 +294,26 @@
 
   </div>
 
+</section>
+
+
+
+<!-- =========================
+     PRODUTOS
+========================= -->
+
+<section id="produtos" class="section products-section">
+  <div class="container">
+    <div class="section-heading center">
+      <span class="section-tag">Produtos</span>
+      <h2>Cuidados além do corte</h2>
+      <p>Confira os produtos disponíveis no Pretão do Corte. Para reservar, entre ou crie sua conta gratuitamente.</p>
+    </div>
+
+    <div class="products-grid" id="productsGrid">
+      <div class="products-empty">Carregando produtos...</div>
+    </div>
+  </div>
 </section>
 
 
@@ -1186,6 +1237,7 @@ async function loginClient() {
 
     updateBookingClientFields();
     showClientAccount();
+    await continuePendingProductReservation();
 
   } catch (error) {
     console.error("Erro no login:", error);
@@ -1486,6 +1538,182 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+
+/* =========================
+   PRODUTOS
+========================= */
+
+let publicProducts = [];
+let pendingProductId = null;
+let selectedProduct = null;
+
+async function loadPublicProducts() {
+  const grid = document.getElementById("productsGrid");
+  if (!grid) return;
+
+  try {
+    const { data, error } = await db
+      .from("produtos")
+      .select("id,nome,descricao,preco,estoque,imagem_url,categoria,destaque,estoque_minimo,codigo")
+      .eq("ativo", true)
+      .order("destaque", { ascending: false })
+      .order("id", { ascending: false });
+
+    if (error) throw error;
+
+    publicProducts = data || [];
+
+    if (!publicProducts.length) {
+      grid.innerHTML = `<div class="products-empty">Nenhum produto disponível no momento.</div>`;
+      return;
+    }
+
+    grid.innerHTML = publicProducts.map(product => {
+      const stock = Number(product.estoque || 0);
+      const minimum = Number(product.estoque_minimo || 0);
+      const stockClass = stock <= 0 ? "out" : (stock <= minimum ? "low" : "");
+      const stockText = stock <= 0 ? "Esgotado" : (stock <= minimum ? `Últimas ${stock} un.` : `${stock} em estoque`);
+      const image = product.imagem_url
+        ? `<img src="${escapeHtml(product.imagem_url)}" alt="${escapeHtml(product.nome)}" loading="lazy">`
+        : `<div class="product-placeholder">✂</div>`;
+
+      return `
+        <article class="product-card">
+          <div class="product-image">
+            ${image}
+            ${product.destaque ? `<span class="product-badge">★ DESTAQUE</span>` : ""}
+          </div>
+          <div class="product-body">
+            <div class="product-meta">${escapeHtml(product.categoria || "Produto")}${product.codigo ? ` · ${escapeHtml(product.codigo)}` : ""}</div>
+            <h3>${escapeHtml(product.nome)}</h3>
+            <p class="product-description">${escapeHtml(product.descricao || "Produto disponível no Pretão do Corte.")}</p>
+            <div class="product-footer">
+              <span class="product-price">${formatPrice(product.preco || 0)}</span>
+              <span class="product-stock ${stockClass}">${escapeHtml(stockText)}</span>
+            </div>
+            <button
+              type="button"
+              class="btn btn-dark product-reserve"
+              ${stock <= 0 ? "disabled" : ""}
+              onclick="startProductReservation(${Number(product.id)})"
+            >
+              ${stock <= 0 ? "Produto esgotado" : "🛍️ Reservar produto"}
+            </button>
+          </div>
+        </article>`;
+    }).join("");
+  } catch (error) {
+    console.error("Erro ao carregar produtos:", error);
+    grid.innerHTML = `<div class="products-empty">Não foi possível carregar os produtos agora. Atualize a página e tente novamente.</div>`;
+  }
+}
+
+function startProductReservation(productId) {
+  const product = publicProducts.find(item => Number(item.id) === Number(productId));
+  if (!product || Number(product.estoque || 0) <= 0) return;
+
+  if (!clientAccount || !clientSession) {
+    pendingProductId = Number(productId);
+    openClientAuth();
+    showClientLogin();
+    setClientMessage("Entre ou crie sua conta para reservar este produto.", "success");
+    return;
+  }
+
+  openProductReserveModal(product);
+}
+
+function openProductReserveModal(product) {
+  selectedProduct = product;
+  const modal = document.getElementById("productReserveModal");
+  document.getElementById("reserveProductName").textContent = product.nome || "Produto";
+  document.getElementById("reserveProductPrice").textContent = formatPrice(product.preco || 0);
+  document.getElementById("reserveProductStock").textContent = `${Number(product.estoque || 0)} unidade(s) disponível(is)`;
+  document.getElementById("reserveProductImage").src = product.imagem_url || "logo.png";
+
+  const quantity = document.getElementById("reserveProductQuantity");
+  quantity.value = 1;
+  quantity.max = Math.max(1, Number(product.estoque || 1));
+
+  setProductReserveMessage("");
+  modal.classList.remove("hidden");
+}
+
+function closeProductReserveModal() {
+  document.getElementById("productReserveModal")?.classList.add("hidden");
+  selectedProduct = null;
+}
+
+function setProductReserveMessage(message = "", type = "error") {
+  const box = document.getElementById("productReserveMessage");
+  if (!box) return;
+  box.textContent = message;
+  box.className = message ? `client-auth-message ${type}` : "client-auth-message hidden";
+}
+
+async function continuePendingProductReservation() {
+  if (!pendingProductId || !clientAccount || !clientSession) return;
+  const productId = pendingProductId;
+  pendingProductId = null;
+  const product = publicProducts.find(item => Number(item.id) === Number(productId));
+  if (!product) return;
+  closeClientAuth();
+  openProductReserveModal(product);
+}
+
+async function confirmProductReservation() {
+  if (!selectedProduct) return;
+
+  if (!clientAccount || !clientSession) {
+    closeProductReserveModal();
+    pendingProductId = Number(selectedProduct.id);
+    openClientAuth();
+    showClientLogin();
+    setClientMessage("Sua sessão terminou. Entre novamente para reservar.", "error");
+    return;
+  }
+
+  const quantity = Number(document.getElementById("reserveProductQuantity").value || 1);
+  const stock = Number(selectedProduct.estoque || 0);
+
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > stock) {
+    setProductReserveMessage("Escolha uma quantidade disponível em estoque.");
+    return;
+  }
+
+  const button = document.getElementById("confirmProductReserveButton");
+  button.disabled = true;
+  button.textContent = "Reservando...";
+
+  try {
+    const { data, error } = await db.rpc("reservar_produto", {
+      p_produto_id: Number(selectedProduct.id),
+      p_quantidade: quantity,
+      p_cliente_nome: clientAccount.nome,
+      p_cliente_telefone: clientAccount.whatsapp,
+      p_cliente_token: clientSession
+    });
+
+    if (error) throw error;
+    if (!data?.ok || !data?.cliente_id) {
+      throw new Error("Não foi possível validar sua conta para esta reserva.");
+    }
+
+    const productName = selectedProduct.nome;
+    closeProductReserveModal();
+    await loadPublicProducts();
+
+    alert(`Reserva realizada! ${quantity}x ${productName} ficou separado para você no Pretão do Corte.`);
+  } catch (error) {
+    console.error("Erro ao reservar produto:", error);
+    setProductReserveMessage(error?.message || "Não foi possível reservar o produto.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "🛍️ Confirmar reserva";
+  }
+}
+
+
 let currentStep = 1;
 
 let booking = {
@@ -1699,6 +1927,7 @@ async function renderTimes(selectedDate) {
 
 loadBusinessHours();
 loadPublicServices();
+loadPublicProducts();
 restoreClientSession();
 
 
@@ -2142,6 +2371,46 @@ function resetBooking() {
 <div class="gallery-lightbox hidden" id="galleryLightbox" onclick="closeGalleryImage(event)">
   <button type="button" class="gallery-lightbox-close" onclick="closeGalleryImage()" aria-label="Fechar imagem">×</button>
   <img id="galleryLightboxImage" src="" alt="">
+</div>
+
+
+<!-- =========================
+     RESERVA DE PRODUTO
+========================= -->
+
+<div class="client-modal hidden" id="productReserveModal">
+  <div class="client-modal-backdrop" onclick="closeProductReserveModal()"></div>
+  <div class="client-modal-card">
+    <button type="button" class="client-modal-close" onclick="closeProductReserveModal()" aria-label="Fechar">×</button>
+    <span class="booking-small">RESERVA DE PRODUTO</span>
+    <h3>Confirmar reserva</h3>
+    <p>O produto ficará separado para você no Pretão do Corte.</p>
+
+    <div class="product-modal-summary">
+      <img id="reserveProductImage" src="logo.png" alt="">
+      <div>
+        <strong id="reserveProductName">Produto</strong>
+        <span id="reserveProductPrice">R$ 0,00</span>
+        <span id="reserveProductStock">Disponível</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="reserveProductQuantity">Quantidade</label>
+      <input id="reserveProductQuantity" type="number" min="1" value="1">
+    </div>
+
+    <div class="product-login-note">
+      <strong>Reserva vinculada à sua conta.</strong><br>
+      Usaremos seu nome e WhatsApp cadastrados.
+    </div>
+
+    <div id="productReserveMessage" class="client-auth-message hidden"></div>
+
+    <button type="button" class="btn btn-dark client-auth-submit" id="confirmProductReserveButton" onclick="confirmProductReservation()">
+      🛍️ Confirmar reserva
+    </button>
+  </div>
 </div>
 
 <!-- =========================
