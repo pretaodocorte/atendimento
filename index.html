@@ -67,6 +67,21 @@
     .client-appointment-actions button{border:0;background:transparent;padding:0;color:#8d2f24;font-weight:800;cursor:pointer}
     .client-appointments-empty{padding:14px;border-radius:12px;background:#f2e9e1;color:#75685f;font-size:13px;line-height:1.45}
     .client-loading{opacity:.7}
+
+    .loyalty-invite{
+      margin:22px 0 18px;
+      padding:18px;
+      border:1px solid #e4d5c8;
+      border-radius:16px;
+      background:#fff7ef;
+      text-align:left;
+    }
+    .loyalty-invite.hidden{display:none}
+    .loyalty-invite-icon{font-size:28px;line-height:1;margin-bottom:8px}
+    .loyalty-invite strong{display:block;color:#241912;font-size:17px;margin-bottom:6px}
+    .loyalty-invite p{margin:0 0 14px;color:#75685f;line-height:1.5;font-size:14px}
+    .loyalty-invite .btn{width:100%;text-align:center}
+    .confirmation-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
     @media(max-width:760px){.nav-client-area{gap:6px}.nav-client-btn{padding-left:12px;padding-right:12px}.nav-book{display:none}.gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.gallery-item{border-radius:12px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -706,23 +721,41 @@
           </div>
 
 
-          <a
-            id="bookingWhatsappButton"
-            class="btn btn-outline"
-            href="#"
-            target="_blank"
-            rel="noopener noreferrer"
-            style="margin-right:10px"
-          >
-            Falar com a barbearia no WhatsApp
-          </a>
+          <div class="confirmation-actions">
+            <a
+              id="bookingWhatsappButton"
+              class="btn btn-dark"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              📲 Enviar confirmação no WhatsApp
+            </a>
 
-          <button
-            class="btn btn-dark"
-            onclick="resetBooking()"
-          >
-            Fazer novo agendamento
-          </button>
+            <button
+              class="btn btn-outline"
+              onclick="resetBooking()"
+            >
+              📅 Fazer novo agendamento
+            </button>
+          </div>
+
+          <div class="loyalty-invite hidden" id="bookingLoyaltyInvite">
+            <div class="loyalty-invite-icon">🎁</div>
+            <strong>Quer ganhar cortes grátis?</strong>
+            <p>
+              Crie sua conta gratuitamente. A cada 10 cortes concluídos,
+              o próximo é grátis. Este agendamento ficará vinculado à sua conta.
+            </p>
+
+            <button
+              type="button"
+              class="btn btn-dark"
+              onclick="openRegisterFromBooking()"
+            >
+              👤 Criar minha conta
+            </button>
+          </div>
 
         </div>
 
@@ -965,6 +998,17 @@ function closeClientAuth() {
   document.getElementById("clientAuthModal").classList.add("hidden");
 }
 
+function openRegisterFromBooking() {
+  document.getElementById("clientAuthModal").classList.remove("hidden");
+  showClientRegister();
+
+  const nameInput = document.getElementById("clientRegisterName");
+  const phoneInput = document.getElementById("clientRegisterPhone");
+
+  if (nameInput) nameInput.value = booking.name || "";
+  if (phoneInput) phoneInput.value = formatPhone(booking.phone || "");
+}
+
 function showClientLogin() {
   document.getElementById("clientLoginForm").classList.remove("hidden");
   document.getElementById("clientRegisterForm").classList.add("hidden");
@@ -1059,13 +1103,38 @@ async function registerClient() {
 
     if (error) throw error;
 
-    setClientMessage("Conta criada! Agora você já pode entrar.", "success");
+    const newClientId = Number(data?.cliente_id || 0);
+    let bookingLinked = false;
+
+    if (booking.agendamentoId && newClientId) {
+      const { data: linkData, error: linkError } = await db.rpc(
+        "vincular_agendamento_cliente",
+        {
+          p_agendamento_id: Number(booking.agendamentoId),
+          p_cliente_id: newClientId
+        }
+      );
+
+      if (linkError) throw linkError;
+      bookingLinked = Boolean(linkData?.ok);
+    }
+
+    const loyaltyInvite = document.getElementById("bookingLoyaltyInvite");
+    if (loyaltyInvite && bookingLinked) {
+      loyaltyInvite.classList.add("hidden");
+    }
 
     document.getElementById("clientLoginPhone").value = formatPhone(phone);
     document.getElementById("clientLoginPassword").value = "";
 
     showClientLogin();
-    setClientMessage("Conta criada! Entre com seu WhatsApp e senha.", "success");
+
+    setClientMessage(
+      bookingLinked
+        ? "Conta criada! 🎁 Este agendamento já está vinculado à sua fidelidade. Agora entre com seu WhatsApp e senha."
+        : "Conta criada! Agora entre com seu WhatsApp e senha.",
+      "success"
+    );
   } catch (error) {
     console.error("Erro no cadastro:", error);
     setClientMessage(error?.message || "Não foi possível criar sua conta.");
@@ -1426,6 +1495,7 @@ let booking = {
   date: "",
   dateISO: "",
   time: "",
+  agendamentoId: null,
   name: "",
   phone: "",
   clientId: null
@@ -1958,7 +2028,8 @@ async function confirmBooking() {
 
 
   const whatsappMessage = [
-    "Olá! Fiz um agendamento no Pretão do Corte.",
+    "✂️ Novo agendamento — Pretão do Corte",
+    `Cliente: ${booking.name}`,
     `Serviço: ${booking.service}`,
     `Data: ${booking.date}`,
     `Horário: ${booking.time}`,
@@ -1971,6 +2042,13 @@ async function confirmBooking() {
   if (bookingWhatsappButton) {
     bookingWhatsappButton.href =
       `https://wa.me/5516993633521?text=${encodeURIComponent(whatsappMessage)}`;
+  }
+
+  const loyaltyInvite =
+    document.getElementById("bookingLoyaltyInvite");
+
+  if (loyaltyInvite) {
+    loyaltyInvite.classList.toggle("hidden", Boolean(clientAccount));
   }
 
 
@@ -2043,6 +2121,9 @@ function resetBooking() {
     .classList.add(
       "hidden"
     );
+
+  const loyaltyInvite = document.getElementById("bookingLoyaltyInvite");
+  if (loyaltyInvite) loyaltyInvite.classList.add("hidden");
 
 
   createDates();
