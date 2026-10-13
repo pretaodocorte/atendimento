@@ -19,6 +19,11 @@
     content="Pretão do Corte - Barbearia em Ribeirão Preto. Cortes masculinos, fade, barba e atendimento profissional."
   >
 
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pretão do Corte">
+  <link rel="apple-touch-icon" href="app-icon-192.png">
   <link rel="stylesheet" href="style.css">
 
   <style>
@@ -183,13 +188,33 @@ footer{background:#080808!important;color:#b9b0a5!important;border-top:1px solid
 .kaique-booking-profile{display:flex;align-items:center;gap:12px;background:#221a12;border:1px solid #70502e;border-radius:17px;padding:10px 13px;margin:12px 0 18px;color:#fff}
 .kaique-booking-profile img{width:54px;height:54px;object-fit:cover;object-position:center 23%;border-radius:14px;border:1px solid #bc8a46}
 .kaique-booking-profile strong{display:block;color:#f7d08a;font-size:15px}.kaique-booking-profile small{display:block;color:#d1c3b1;margin-top:3px;font-size:12px}
+/* Correção específica da segunda foto: seção O profissional */
+.about-visual,.about-logo{opacity:1!important;filter:none!important;mix-blend-mode:normal!important}
+.about-logo{position:relative!important;isolation:isolate!important;background:#17110c!important}
+.about-logo::before,.about-logo::after{content:none!important;display:none!important;background:none!important;opacity:0!important}
+.about-logo img.kaique-photo{display:block!important;opacity:1!important;visibility:visible!important;filter:brightness(1.18) contrast(1.03) saturate(1.08)!important;mix-blend-mode:normal!important;position:relative!important;z-index:2!important}
 @media(max-width:760px){.hero-logo-card{min-height:unset!important}.hero-logo-card .kaique-photo{height:315px!important;max-height:none!important}.about-logo .kaique-photo{height:310px}}
 
+
+/* Instalação opcional como aplicativo */
+.app-install-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;max-width:1140px;margin:0 auto;padding:15px 20px;background:linear-gradient(115deg,#21180f,#100e0b);border:1px solid #73502b;border-radius:18px;color:#f9e9d0;box-shadow:0 12px 34px #0006}
+.app-install-banner strong{display:block;color:#ffd18a;font-size:17px;margin-bottom:4px}.app-install-banner p{margin:0;color:#d0c4b4;font-size:13px;line-height:1.5}
+.app-install-banner button{border:0;border-radius:13px;background:linear-gradient(135deg,#ffdf9b,#d99732);padding:13px 18px;font-weight:900;color:#201508;white-space:nowrap;cursor:pointer}
+.app-install-zone{background:#0b0b0b;padding:18px 16px 28px}
+.install-help{display:none;max-width:1140px;margin:12px auto 0;padding:16px 18px;border:1px solid #655034;border-radius:14px;background:#1b1712;color:#eee0ce;line-height:1.6;font-size:14px}
+.install-help.visible{display:block}.install-help strong{color:#ffd18a}
+@media(max-width:760px){.app-install-zone{padding:12px 14px 22px}.app-install-banner{align-items:stretch;flex-direction:column;padding:16px}.app-install-banner button{width:100%;min-height:47px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
+
+
+<section class="app-install-zone" aria-label="Instalar aplicativo">
+ <div class="app-install-banner"><div><strong>✂️ Pretão do Corte no seu celular</strong><p>Agende seu próximo corte com um toque, direto da tela inicial.</p></div><button id="installPretaoButton" type="button">📲 Clique aqui para baixar</button></div>
+ <div class="install-help" id="installPretaoHelp" role="status" aria-live="polite"></div>
+</section>
 
 <!-- =========================
      CABEÇALHO
@@ -2708,5 +2733,25 @@ function resetBooking() {
 })();
 </script>
 
+
+<script>
+(function(){
+ var deferredPrompt=null;
+ var btn=document.getElementById('installPretaoButton');
+ var help=document.getElementById('installPretaoHelp');
+ function showHelp(html){help.innerHTML=html;help.classList.add('visible');}
+ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;});
+ window.addEventListener('appinstalled',function(){deferredPrompt=null;btn.textContent='✓ Aplicativo instalado';showHelp('Pronto! O Pretão do Corte foi adicionado ao seu dispositivo.');});
+ btn.addEventListener('click',async function(){
+  if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){showHelp('Você já está usando a versão instalada do Pretão do Corte.');return;}
+  if(deferredPrompt){var prompt=deferredPrompt;deferredPrompt=null;prompt.prompt();try{await prompt.userChoice;}catch(e){}return;}
+  var ua=navigator.userAgent||'';
+  if(/iphone|ipad|ipod/i.test(ua))showHelp('<strong>No iPhone (Safari):</strong> toque no botão Compartilhar (quadrado com seta para cima), selecione <strong>Adicionar à Tela de Início</strong> e confirme. Se estiver em outro navegador, abra este site no Safari primeiro.');
+  else if(/android/i.test(ua))showHelp('<strong>No Android:</strong> abra o menu ⋮ do Chrome e escolha <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.');
+  else showHelp('<strong>No computador:</strong> procure o ícone de instalar na barra de endereço do Chrome ou Edge. Se não aparecer, abra o menu do navegador e procure a opção de instalar este site.');
+ });
+ if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./service-worker.js').catch(function(e){console.warn('Instalação offline indisponível',e);});});}
+})();
+</script>
 </body>
 </html>
