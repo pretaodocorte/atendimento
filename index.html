@@ -113,6 +113,73 @@
     @media(max-width:900px){.products-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:600px){.products-grid{grid-template-columns:1fr}.product-description{min-height:0}}
 
+  
+/* PRETÃO APP UI 2026 — camada visual, preservando a lógica original */
+:root{--app-bg:#090909;--app-card:#161616;--app-gold:#e8ac42;--app-gold-light:#ffdb8b;--app-text:#f8f6f0;--app-muted:#a8a39b}
+html{scroll-behavior:smooth;scroll-padding-top:82px}
+body{background:var(--app-bg);color:var(--app-text)}
+.header{background:rgba(10,10,10,.94)!important;border-bottom:1px solid #34302a!important;backdrop-filter:blur(18px);position:sticky;top:0;z-index:1000}
+.header .nav{min-height:74px}.brand img{max-height:60px;object-fit:contain}
+.desktop-nav a{color:#d5d0c7!important}.desktop-nav a:hover{color:var(--app-gold)!important}
+.btn-dark,.service-book{background:linear-gradient(135deg,#ffdb8b,#d89429)!important;color:#15100a!important;border:1px solid #d89b39!important;font-weight:800!important;box-shadow:0 8px 22px #b8752124}
+.btn-outline{color:#f5ead9!important;border-color:#6b5639!important;background:#201a14!important}
+.hero{background:radial-gradient(ellipse at 80% 15%,#4b3019 0%,transparent 43%),linear-gradient(155deg,#0a0a0a,#18130f 65%,#0a0a0a)!important;color:#fff!important;min-height:unset!important}
+.hero-grid{align-items:center;gap:24px}.hero-content h1{color:#fff!important;letter-spacing:-.055em;line-height:1.05}.hero-text{color:#c8c2b9!important}.eyebrow{color:var(--app-gold)!important}
+.hero-logo-card{background:linear-gradient(145deg,#21170e,#080808)!important;border:1px solid #8d6334!important;border-radius:30px!important;box-shadow:0 24px 65px #0008!important}
+.hero-badge{background:#1b1713!important;color:#fff!important;border:1px solid #73552f!important}
+.hero-info strong{color:#fff!important}.hero-info span{color:#b9afa3!important}
+.section,.products-section,#servicos,#galeria,#localizacao{background:#0e0e0e!important;color:#f5f1e8!important}
+.section-heading h2,.section-heading p,.section-heading .section-tag{color:inherit}.section-heading p{color:#b9b2a9!important}.section-tag{color:var(--app-gold)!important}
+.service-card,.product-card,.location-card{background:#191715!important;border:1px solid #40362b!important;color:#f6f1e8!important;border-radius:20px!important;box-shadow:0 12px 35px #0004!important}
+.service-card h3,.product-card h3,.location-card h3{color:#fff!important}.service-card p,.product-card p,.location-card p{color:#bcb3a8!important}.service-footer,.product-price,.service-number{color:var(--app-gold-light)!important}
+.products-section{background:#11100f!important}.product-body{background:#191715!important}.product-meta{color:#e4b56d!important}.product-stock{color:#153b25!important}
+.about{background:linear-gradient(145deg,#1c150f,#090909)!important}.about h2,.about p{color:#fff!important}.about p{color:#c7beb4!important}
+.booking-section{background:radial-gradient(ellipse at top,#352314,#0c0b0a 58%)!important;color:#fff!important;padding-top:70px;padding-bottom:100px}
+.booking-card{background:#171512!important;border:1px solid #6a4a27!important;color:#f9f5ee!important;border-radius:26px!important;box-shadow:0 22px 70px #0009!important;overflow:hidden}
+.booking-header h3,.booking-label{color:#fff!important}.booking-header p,.booking-small{color:#c6b8a5!important}.booking-step-number{background:#332618!important;color:var(--app-gold-light)!important}
+.progress-item.active{background:var(--app-gold)!important}
+.booking-option,.dates button,.times button{background:#24211e!important;color:#fff!important;border:1px solid #4b4035!important;border-radius:13px!important;transition:all .2s}
+.booking-option strong{color:#fff!important}.booking-option small{color:#c4b7a6!important}
+.booking-option.selected,.dates button.selected,.times button.selected,.date.selected,.time.selected{background:#3d2b17!important;border-color:var(--app-gold)!important;color:#ffda87!important}
+.booking-actions .btn-gray{background:#302b26!important;color:#fff!important}
+.booking-card input{background:#28231f!important;color:#fff!important;border:1px solid #63513b!important}
+.booking-card label{color:#e9e1d7!important}
+.booking-notice{background:#282018!important;color:#e3d4c2!important;border-color:#59452c!important}
+.location-info .contact-item{color:#fff!important}
+footer{background:#080808!important;color:#b9b0a5!important;border-top:1px solid #30271e}
+.app-kicker{display:inline-flex;align-items:center;gap:9px;color:#f6ca7b;background:#302116;border:1px solid #79572f;padding:10px 16px;border-radius:100px;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:24px}
+.app-hero-title em{color:var(--app-gold-light);font-style:normal}.app-hero-subtitle{font-size:17px;color:#c8c2b9;max-width:540px;line-height:1.6}
+.app-trust{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.app-trust span{font-size:12px;padding:9px 12px;background:#ffffff0b;border:1px solid #ffffff25;border-radius:100px;color:#f3e6d3}
+.app-booking-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 20px}.app-booking-heading strong{font-size:14px;color:#f8d38c}.app-booking-heading small{color:#b2a393;font-size:12px}
+.app-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:16px 0 24px}.app-step{display:flex;flex-direction:column;align-items:center;gap:6px;color:#948b81;font-size:11px;text-align:center}.app-step b{width:31px;height:31px;display:grid;place-items:center;border:1px solid #514331;border-radius:50%;font-size:13px}.app-step.active{color:#ffd585}.app-step.active b{background:var(--app-gold);color:#17100a;border-color:var(--app-gold)}.app-step.done b{background:#3d2d18;color:#ffda90;border-color:#b17c33}
+.app-bottom-nav{display:none}.app-section-heading{color:var(--app-gold);font-weight:800;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+@media(max-width:760px){
+ body{padding-bottom:calc(84px + env(safe-area-inset-bottom));background:#0b0b0b!important}
+ .header .nav{min-height:64px}.header .brand img{max-height:52px}.nav-client-btn{font-size:12px!important;padding:9px 12px!important}
+ .hero{padding:38px 0 46px!important}.hero-grid{display:flex!important;flex-direction:column!important;gap:25px!important}.hero-content{width:100%}.hero-content h1{font-size:clamp(38px,11vw,58px)!important;line-height:1.04!important;margin:0 0 17px!important}.hero-visual{width:100%!important;max-width:320px!important;margin:auto!important}.hero-logo-card{padding:15px!important;min-height:unset!important}.hero-logo-card img{max-height:190px!important;object-fit:contain}.hero-badge{display:none!important}
+ .hero-actions{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}.hero-actions .btn{width:100%!important;text-align:center!important;justify-content:center!important}.hero-info{display:none!important}
+ .section,.booking-section{padding-top:52px!important;padding-bottom:60px!important}.section-heading h2{font-size:clamp(29px,8vw,40px)!important}.services-grid,.products-grid{grid-template-columns:1fr!important}.service-card,.product-card{border-radius:18px!important}
+ .booking-card{padding:18px!important;border-radius:22px!important}.booking-header{gap:8px}.booking-header h3{font-size:24px!important}.booking-option{padding:16px!important;min-height:65px}.dates,.times{gap:8px!important}.booking-actions{gap:10px!important}.booking-actions .btn{flex:1;min-height:46px}
+ .mobile-book{display:none!important}
+ .app-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(4,1fr);left:0;right:0;bottom:0;z-index:9000;background:#100f0ef5;border-top:1px solid #5b4128;padding:10px 8px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px #0008;backdrop-filter:blur(20px)}
+ .app-bottom-nav a{display:flex;align-items:center;flex-direction:column;justify-content:center;gap:5px;color:#ada49a;text-decoration:none;font-size:10px;font-weight:700;min-height:48px}.app-bottom-nav a svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.8;fill:none}.app-bottom-nav a.active{color:#f5c36d}.app-bottom-nav a.active svg{stroke:#f5c36d}
+ .app-bottom-nav a.primary{color:#130f0a;background:linear-gradient(135deg,#ffe09a,#d9942d);border-radius:15px;margin:-6px 5px -2px;padding:7px}.app-bottom-nav a.primary svg{stroke:#1c1308}
+ .app-steps{gap:3px}.app-step{font-size:10px}
+ .client-modal{z-index:10001}.client-modal-card{max-height:86dvh}.gallery-lightbox{z-index:10002}
+}
+
+
+/* Foto real do profissional */
+.hero-logo-card{overflow:hidden;position:relative;padding:0!important;min-height:350px!important}
+.hero-logo-card .kaique-photo{display:block;width:100%;height:390px;max-height:none!important;object-fit:cover;object-position:center 28%;filter:saturate(.92) contrast(1.04)}
+.hero-logo-card::after{content:"KAIQUE VITAL  •  PRETÃO DO CORTE";position:absolute;bottom:0;left:0;right:0;padding:36px 12px 18px;text-align:center;font-size:12px;font-weight:900;letter-spacing:.12em;color:#f5d28c;background:linear-gradient(transparent,#090807ef)}
+.about-logo{overflow:hidden;border-radius:22px;border:1px solid #ad7b3c;background:#16100b}
+.about-logo .kaique-photo{display:block;width:100%;height:370px;object-fit:cover;object-position:center 25%}
+.kaique-booking-profile{display:flex;align-items:center;gap:12px;background:#221a12;border:1px solid #70502e;border-radius:17px;padding:10px 13px;margin:12px 0 18px;color:#fff}
+.kaique-booking-profile img{width:54px;height:54px;object-fit:cover;object-position:center 23%;border-radius:14px;border:1px solid #bc8a46}
+.kaique-booking-profile strong{display:block;color:#f7d08a;font-size:15px}.kaique-booking-profile small{display:block;color:#d1c3b1;margin-top:3px;font-size:12px}
+@media(max-width:760px){.hero-logo-card{min-height:unset!important}.hero-logo-card .kaique-photo{height:315px!important;max-height:none!important}.about-logo .kaique-photo{height:310px}}
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -177,19 +244,15 @@
 
     <div class="hero-content">
 
-      <div class="eyebrow">
-        Barbearia em Ribeirão Preto
-      </div>
+      <div class="app-kicker">✦ Pretão do Corte · Ribeirão Preto</div>
 
       <h1>
         Seu estilo.<br>
-        Sua identidade.
+        <em style="color:#f1bc62;font-style:normal">Sua identidade.</em>
       </h1>
 
       <p class="hero-text">
-        Renovando autoestima através do corte.
-        Técnica, cuidado e atenção aos detalhes
-        em cada atendimento.
+        O seu próximo corte começa aqui. Escolha o serviço, encontre um horário disponível e agende pelo celular, sem complicação.
       </p>
 
       <div class="hero-actions">
@@ -198,7 +261,7 @@
           href="#agendamento"
           class="btn btn-dark btn-large"
         >
-          Agendar horário
+          ✂ Agendar meu corte
         </a>
 
         <a
@@ -211,6 +274,7 @@
       </div>
 
 
+      <div class="app-trust"><span>✓ Agendamento online</span><span>✓ Horários reais</span><span>✓ Fidelidade</span></div>
       <div class="hero-info">
 
         <div>
@@ -238,8 +302,8 @@
       <div class="hero-logo-card">
 
         <img
-          src="logo.png"
-          alt="Logo Pretão do Corte"
+          class="kaique-photo" src="kaique-vital.jpg"
+          alt="Kaique Vital, profissional do Pretão do Corte"
         >
 
       </div>
@@ -329,8 +393,8 @@
 
       <div class="about-logo">
         <img
-          src="logo.png"
-          alt="Pretão do Corte"
+          class="kaique-photo" src="kaique-vital.jpg"
+          alt="Kaique Vital, barbeiro do Pretão do Corte"
         >
       </div>
 
@@ -497,6 +561,13 @@
 
       </div>
 
+
+      <div class="app-steps" id="appStepTracker" aria-label="Etapas do agendamento">
+        <div class="app-step active" data-step="1"><b>1</b><span>Serviço</span></div>
+        <div class="app-step" data-step="2"><b>2</b><span>Dia</span></div>
+        <div class="app-step" data-step="3"><b>3</b><span>Horário</span></div>
+        <div class="app-step" data-step="4"><b>4</b><span>Confirmar</span></div>
+      </div>
 
       <div class="progress">
 
@@ -745,12 +816,9 @@
               </strong>
             </div>
 
-            <div>
-              <span>Profissional</span>
-
-              <strong>
-                Kaique Vital
-              </strong>
+            <div class="kaique-booking-profile">
+              <img src="kaique-vital.jpg" alt="Foto de Kaique Vital" loading="lazy">
+              <div><strong>Kaique Vital</strong><small>Seu barbeiro no Pretão do Corte</small></div>
             </div>
 
             <div>
@@ -2605,6 +2673,35 @@ function resetBooking() {
   </div>
 </div>
 
+
+
+<nav class="app-bottom-nav" aria-label="Navegação do aplicativo">
+  <a href="#home" data-app-nav="home" class="active"><svg viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><span>Início</span></a>
+  <a href="#servicos" data-app-nav="servicos"><svg viewBox="0 0 24 24"><path d="M6 4 18 20M18 4 6 20"/><circle cx="5" cy="4" r="2"/><circle cx="19" cy="4" r="2"/></svg><span>Serviços</span></a>
+  <a href="#agendamento" data-app-nav="agendamento" class="primary"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 2v6M17 2v6M3 10h18M8 15h8M12 12v6"/></svg><span>Agendar</span></a>
+  <a href="#" data-app-nav="conta" onclick="openClientAuth();return false"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><span>Minha conta</span></a>
+</nav>
+<script>
+(function(){
+  function refreshAppSteps(){
+    var n=typeof currentStep==='number'?currentStep:1;
+    document.querySelectorAll('#appStepTracker .app-step').forEach(function(el){
+      var step=Number(el.dataset.step);
+      el.classList.toggle('active',step===n);
+      el.classList.toggle('done',step<n);
+    });
+  }
+  var previous=window.updateStep;
+  if(typeof previous==='function') window.updateStep=function(){var result=previous.apply(this,arguments);refreshAppSteps();return result;};
+  document.querySelectorAll('[data-app-nav]').forEach(function(link){
+    link.addEventListener('click',function(){
+      document.querySelectorAll('[data-app-nav]').forEach(function(x){x.classList.remove('active')});
+      link.classList.add('active');
+    });
+  });
+  refreshAppSteps();
+})();
+</script>
 
 </body>
 </html>
