@@ -169,9 +169,14 @@ footer{background:#080808!important;color:#b9b0a5!important;border-top:1px solid
 }
 
 
+/* Corrige escurecimento herdado do estilo original */
+.hero-logo-card{background:#17110c!important;opacity:1!important;filter:none!important;isolation:isolate}
+.hero-logo-card::before{content:none!important;display:none!important}
+.hero-logo-card .kaique-photo{opacity:1!important;filter:brightness(1.18) contrast(1.03) saturate(1.08)!important;mix-blend-mode:normal!important;position:relative;z-index:1}
+.hero-logo-card::after{z-index:2;pointer-events:none}
 /* Foto real do profissional */
 .hero-logo-card{overflow:hidden;position:relative;padding:0!important;min-height:350px!important}
-.hero-logo-card .kaique-photo{display:block;width:100%;height:390px;max-height:none!important;object-fit:cover;object-position:center 28%;filter:saturate(.92) contrast(1.04)}
+.hero-logo-card .kaique-photo{display:block;width:100%;height:390px;max-height:none!important;object-fit:cover;object-position:center 28%;filter:brightness(1.18) contrast(1.03) saturate(1.08)!important}
 .hero-logo-card::after{content:"KAIQUE VITAL  •  PRETÃO DO CORTE";position:absolute;bottom:0;left:0;right:0;padding:36px 12px 18px;text-align:center;font-size:12px;font-weight:900;letter-spacing:.12em;color:#f5d28c;background:linear-gradient(transparent,#090807ef)}
 .about-logo{overflow:hidden;border-radius:22px;border:1px solid #ad7b3c;background:#16100b}
 .about-logo .kaique-photo{display:block;width:100%;height:370px;object-fit:cover;object-position:center 25%}
