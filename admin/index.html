@@ -8,7 +8,7 @@
 
   <title>Painel | Pretão do Corte</title>
 
-  <link rel="stylesheet" href="admin.css?v=mobile3">
+  <link rel="stylesheet" href="admin.css?v=mobile4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -207,7 +207,7 @@
     </div>
 
 
-    <button type="button" class="mobile-more-trigger" id="mobileMoreTrigger" aria-label="Mais opções" aria-expanded="false" aria-controls="mobileMorePanel"><span class="mobile-more-icon">☰</span><span>Mais</span></button>
+
 
     <div class="sidebar-profile">
 
@@ -239,6 +239,13 @@
        CONTEÚDO
   =========================================== -->
 
+<nav class="mobile-bottom-nav" aria-label="Navegação principal">
+<button type="button" class="mobile-tab active" data-mobile-tab="agenda"><span class="mobile-tab-icon">▦</span><span>Agenda</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="servicos"><span class="mobile-tab-icon">✂</span><span>Serviços</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="financeiro"><span class="mobile-tab-icon">◈</span><span>Financeiro</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="clientes"><span class="mobile-tab-icon">♟</span><span>Clientes</span></button>
+<button type="button" class="mobile-more-trigger" id="mobileMoreTrigger" aria-label="Mais opções" aria-expanded="false" aria-controls="mobileMorePanel"><span class="mobile-tab-icon">☰</span><span>Mais</span></button>
+</nav>
     <div class="mobile-more-backdrop" id="mobileMoreBackdrop" hidden></div>
   <nav class="mobile-more-panel" id="mobileMorePanel" aria-label="Outras áreas do painel" hidden>
     <div class="mobile-more-heading"><strong>Outras opções</strong><button type="button" id="mobileMoreClose" aria-label="Fechar menu">×</button></div>
@@ -2765,7 +2772,9 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
  panel.querySelectorAll('[data-mobile-page]').forEach(button=>button.addEventListener('click',()=>{
    toggle(false);goToPage(button.dataset.mobilePage);
  }));
- document.querySelectorAll('.sidebar .nav-item').forEach(button=>button.addEventListener('click',()=>toggle(false)));
+ document.querySelectorAll('.mobile-tab').forEach(button=>button.addEventListener('click',()=>{toggle(false);goToPage(button.dataset.mobileTab);}));
+ const originalGoToPage=goToPage;
+ goToPage=function(page){originalGoToPage(page);document.querySelectorAll('.mobile-tab').forEach(button=>button.classList.toggle('active',button.dataset.mobileTab===page));trigger.classList.toggle('active',['produtos','reservas','configuracoes'].includes(page));};
  document.addEventListener('keydown',event=>{if(event.key==='Escape')toggle(false)});
 })();
 
