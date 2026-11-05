@@ -206,6 +206,15 @@ footer{background:#080808!important;color:#b9b0a5!important;border-top:1px solid
 @media(max-width:760px){.app-install-zone{padding:12px 14px 22px}.app-install-banner{align-items:stretch;flex-direction:column;padding:16px}.app-install-banner button{width:100%;min-height:47px}}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* Mensalistas: informação objetiva, preservando o tema atual */
+.monthly-box{border:1px solid #856237;border-radius:16px;background:#211911;padding:16px;color:#f7ebd7;margin:14px 0;line-height:1.55}
+.monthly-box strong{display:block;color:#f7cf87;font-size:17px}.monthly-box p{font-size:13px;color:#e4d5c1;margin:5px 0}.monthly-box b{color:#fff}.monthly-box.hidden{display:none!important}
+.monthly-choice{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.monthly-choice button{border:1px solid #685338;border-radius:12px;background:#231d17;color:#f5e7d6;font-size:13px;font-weight:800;padding:13px 8px;cursor:pointer}
+.monthly-choice button.active{border-color:#e7b35c;background:#47301a;color:#ffe2a8}
+@media(max-width:550px){.monthly-choice{grid-template-columns:1fr}}
+</style>
 </head>
 
 <body>
@@ -621,6 +630,11 @@ footer{background:#080808!important;color:#b9b0a5!important;border-top:1px solid
         </span>
 
 
+        <div id="monthlyBookingBox" class="monthly-box hidden" aria-live="polite"></div>
+        <div id="monthlyBookingChoice" class="monthly-choice hidden">
+          <button id="monthlyUsePlan" type="button" onclick="chooseMonthlyBooking(true)">✂ Usar meu plano</button>
+          <button id="monthlyUseRegular" type="button" onclick="chooseMonthlyBooking(false)">Agendar avulso</button>
+        </div>
         <div class="booking-options" id="bookingServiceOptions">
           <p>Carregando serviços...</p>
         </div>
@@ -1105,6 +1119,49 @@ let clientAccount = null;
 
 const CLIENT_SESSION_KEY = "pretao_cliente_session";
 
+let monthlyPlan = null;
+let monthlyMode = false;
+function monthlyBoxText(){
+ if(!monthlyPlan?.mensalista)return '';
+ const p=monthlyPlan;
+ return `<strong>✂ Seu plano: ${escapeHtml(p.nome||'Cortes mensais')}</strong>`+
+ `<p><b>${Number(p.disponiveis||0)} cortes disponíveis para agendar</b> de ${Number(p.total||0)} do plano.</p>`+
+ `<p>${Number(p.utilizados||0)} cortes utilizados · ${Number(p.reservados||0)} cortes já agendados</p>`+
+ `<p>Válido até ${escapeHtml(formatBookingDate(p.fim))}.</p>`;
+}
+function updateMonthlyUI(){
+ const logged=!!clientSession && !!clientAccount;
+ const enabled=logged && monthlyPlan?.mensalista;
+ const account=document.getElementById('monthlyAccountBox');
+ const book=document.getElementById('monthlyBookingBox');
+ const choice=document.getElementById('monthlyBookingChoice');
+ [account,book].forEach(el=>{if(!el)return;el.classList.toggle('hidden',!enabled);el.innerHTML=enabled?monthlyBoxText():'';});
+ if(choice)choice.classList.toggle('hidden',!enabled);
+ if(!enabled)monthlyMode=false;
+ document.getElementById('monthlyUsePlan')?.classList.toggle('active',enabled&&monthlyMode);
+ document.getElementById('monthlyUseRegular')?.classList.toggle('active',enabled&&!monthlyMode);
+}
+async function refreshMonthlyPlan(){
+ monthlyPlan=null;monthlyMode=false;
+ if(!clientSession){updateMonthlyUI();return;}
+ try{
+  const {data,error}=await db.rpc('meu_plano_cortes',{p_token:clientSession});
+  if(error)throw error;
+  monthlyPlan=data;
+ }catch(e){console.warn('Plano mensal indisponível:',e);monthlyPlan=null;}
+ updateMonthlyUI();
+}
+function chooseMonthlyBooking(usePlan){
+ if(usePlan && (!clientSession||!monthlyPlan?.mensalista)){alert('Entre na sua conta para usar o plano.');return;}
+ if(usePlan && Number(monthlyPlan.disponiveis||0)<1){alert('Você não tem cortes livres para um novo agendamento.');return;}
+ if(usePlan && booking.serviceId && String(booking.service||'').trim().toLowerCase()!=='corte'){
+  alert('O plano cobre somente o serviço Corte. Selecione Corte ou escolha avulso.');return;
+ }
+ monthlyMode=usePlan;
+ updateMonthlyUI();
+}
+
+
 function normalizePhone(value) {
   return String(value || "").replace(/\D/g, "").slice(0, 11);
 }
@@ -1207,6 +1264,7 @@ function showClientAccount() {
     clientAccount?.nome ? `Olá, ${clientAccount.nome.split(/\s+/)[0]}` : "Minha conta";
 
   loadMyAppointments();
+  refreshMonthlyPlan();
 }
 
 function goToBookingFromAccount() {
@@ -1351,6 +1409,7 @@ async function logoutClient() {
   booking.clientId = null;
 
   localStorage.removeItem(CLIENT_SESSION_KEY);
+  monthlyPlan=null;monthlyMode=false;updateMonthlyUI();
 
   document.getElementById("clientNavLabel").textContent = "Entrar";
   closeClientAuth();
@@ -1407,6 +1466,7 @@ async function restoreClientSession() {
       `Olá, ${clientAccount.nome.split(/\s+/)[0]}`;
 
     updateBookingClientFields();
+    await refreshMonthlyPlan();
   } catch (error) {
     console.warn("Não foi possível validar a sessão.", error);
     localStorage.removeItem(CLIENT_SESSION_KEY);
@@ -1504,6 +1564,7 @@ async function cancelMyAppointment(appointmentId, button) {
     if (!data) throw new Error("Não foi possível cancelar o agendamento.");
 
     await loadMyAppointments();
+    await refreshMonthlyPlan();
     if (booking.serviceId && booking.dateISO) {
       const [y,m,d] = booking.dateISO.split("-").map(Number);
       await renderTimes(new Date(y, m - 1, d, 12, 0, 0));
@@ -1568,6 +1629,8 @@ function bindBookingServiceButtons() {
       document.querySelectorAll(".booking-option").forEach(item => item.classList.remove("selected"));
       button.classList.add("selected");
       booking.service = button.dataset.service;
+      if (monthlyMode && String(booking.service || '').trim().toLowerCase() !== 'corte') monthlyMode = false;
+      updateMonthlyUI();
       booking.serviceId = Number(button.dataset.serviceId);
       booking.serviceDuration = Number(button.dataset.duration);
     });
@@ -1862,6 +1925,8 @@ function chooseServiceById(serviceId) {
   if (!service) return;
 
   booking.service = service.nome;
+  if (monthlyMode && String(booking.service || '').trim().toLowerCase() !== 'corte') monthlyMode = false;
+  updateMonthlyUI();
   booking.serviceId = Number(service.id);
   booking.serviceDuration = Number(service.duracao_minutos);
   booking.date = "";
@@ -2252,6 +2317,13 @@ async function confirmBooking() {
     return;
   }
 
+  if(monthlyMode){
+    if(!clientSession || !monthlyPlan?.mensalista){alert('Entre novamente na sua conta para usar o plano.');return;}
+    if(String(booking.service||'').trim().toLowerCase()!=='corte'){alert('O plano cobre somente o serviço Corte.');return;}
+    if(Number(monthlyPlan.disponiveis||0)<1){alert('Não há cortes disponíveis.');return;}
+    if(booking.dateISO<monthlyPlan.inicio || booking.dateISO>monthlyPlan.fim){alert('Escolha uma data dentro da validade do seu plano.');return;}
+  }
+
   const confirmButton = document.querySelector('#step4 .btn.btn-dark');
   const originalButtonText = confirmButton ? confirmButton.innerText : "Confirmar horário";
 
@@ -2261,7 +2333,12 @@ async function confirmBooking() {
   }
 
   try {
-    const { data, error } = await db.rpc("criar_agendamento", {
+    const { data, error } = await db.rpc(monthlyMode ? "agendar_corte_mensalista" : "criar_agendamento", monthlyMode ? {
+      p_servico_id: booking.serviceId,
+      p_data: booking.dateISO,
+      p_hora_inicio: booking.time,
+      p_cliente_token: clientSession
+    } : {
       p_servico_id: booking.serviceId,
       p_cliente_nome: booking.name,
       p_cliente_telefone: booking.phone,
@@ -2272,6 +2349,7 @@ async function confirmBooking() {
 
     if (error) throw error;
     booking.agendamentoId = data;
+    if(monthlyMode)await refreshMonthlyPlan();
   } catch (error) {
     console.error("Erro ao criar agendamento:", error);
     const message = error?.message || "Não foi possível confirmar o agendamento.";
@@ -2394,6 +2472,8 @@ async function confirmBooking() {
 ========================= */
 
 function resetBooking() {
+  monthlyMode = false;
+  updateMonthlyUI();
 
   booking = {
     service: "",
@@ -2678,7 +2758,8 @@ function resetBooking() {
         </div>
       </div>
 
-      <div class="client-account-actions">
+      <div id="monthlyAccountBox" class="monthly-box hidden" aria-live="polite"></div>
+        <div class="client-account-actions">
 
         <button
           type="button"
