@@ -74,6 +74,10 @@
   .finance-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.finance-toolbar .btn{white-space:nowrap}@media(max-width:680px){.finance-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.finance-toolbar label{grid-column:1/-1}.finance-toolbar .btn{min-width:0;font-size:12px;padding:11px 6px}}
   </style>
 <style>.mobile-more-trigger,.mobile-more-backdrop,.mobile-more-panel{display:none}</style>
+<style>
+/* MENSALISTAS — painel administrativo */
+.membership-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.membership-card{background:#fff;border:1px solid #e7dfd8;border-radius:14px;padding:18px}.membership-card h3{margin:0 0 12px;font-size:16px}.membership-card p{color:#786a61;font-size:12px;line-height:1.5}.membership-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.membership-form label{font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:6px}.membership-form input,.membership-form select{width:100%;min-width:0;box-sizing:border-box;padding:11px;border:1px solid #dcd1c6;border-radius:9px;background:white;font-size:14px}.membership-form .wide{grid-column:1/-1}.membership-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.membership-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #ece4dc}.membership-row:last-child{border-bottom:0}.membership-row strong{font-size:13px}.membership-row small{display:block;color:#7e7168;margin-top:5px}.membership-tag{display:inline-block;border-radius:30px;padding:5px 9px;font-size:11px;background:#eee6dc;color:#4b3020}.membership-message{padding:12px;background:#f6efe6;border-radius:10px;font-size:12px;margin:12px 0}.membership-row button{padding:8px;border:1px solid #dcd1c6;border-radius:8px;background:white;cursor:pointer}.membership-client-btn{margin-top:6px;border:1px solid #bba18b;border-radius:7px;background:#fff8ee;padding:7px 9px;color:#4b3020;cursor:pointer;font-size:11px;font-weight:700}@media(max-width:700px){.membership-grid{grid-template-columns:1fr}.membership-form{grid-template-columns:1fr}.membership-form .wide{grid-column:auto}.membership-row{align-items:flex-start;flex-wrap:wrap}}
+</style>
 </head>
 
 <body>
@@ -173,7 +177,8 @@
 
         <button class="nav-item" data-page="produtos"><span class="nav-icon">📦</span><span>Produtos</span></button>
         <button class="nav-item" data-page="reservas"><span class="nav-icon">🛍</span><span>Reservas</span></button>
-        <button class="nav-item" data-page="financeiro"><span class="nav-icon">◈</span><span>Financeiro</span></button>
+        <button class="nav-item" data-page="mensalistas"><span class="nav-icon">♛</span><span>Mensalistas</span></button>
+         <button class="nav-item" data-page="financeiro"><span class="nav-icon">◈</span><span>Financeiro</span></button>
         <button
           class="nav-item"
           data-page="clientes"
@@ -250,7 +255,8 @@
     <div class="mobile-more-backdrop" id="mobileMoreBackdrop" hidden></div>
   <nav class="mobile-more-panel" id="mobileMorePanel" aria-label="Outras áreas do painel" hidden>
     <div class="mobile-more-heading"><strong>Outras opções</strong><button type="button" id="mobileMoreClose" aria-label="Fechar menu">×</button></div>
-    <button type="button" data-mobile-page="produtos"><span>▣</span> Produtos <b>›</b></button>
+    <button type="button" data-mobile-page="mensalistas"><span>♛</span> Mensalistas <b>›</b></button>
+     <button type="button" data-mobile-page="produtos"><span>▣</span> Produtos <b>›</b></button>
     <button type="button" data-mobile-page="reservas"><span>▤</span> Reservas <b>›</b></button>
     <button type="button" data-mobile-page="configuracoes"><span>⚙</span> Configurações <b>›</b></button>
   </nav>
@@ -821,7 +827,27 @@
  <div class="card finance-list-card"><div class="finance-list-head"><div><h3>Movimentações</h3><p>Os lançamentos automáticos são gerados pelos atendimentos concluídos.</p></div><select id="financeTypeFilter" onchange="renderFinance()"><option value="todos">Todos</option><option value="automatico">Automáticos</option><option value="receita">Receitas manuais</option><option value="despesa">Despesas</option></select></div><div id="financeList" class="finance-list"><div class="finance-empty">Selecione um mês para consultar.</div></div></div>
 </section>
 
-    <section class="page" id="configuracoes">
+    
+<section class="page" id="mensalistas">
+ <div class="page-intro"><div><span class="section-eyebrow">GESTÃO DE PLANOS</span><h2>Mensalistas</h2><p>Crie planos e atribua mensalidades aos clientes cadastrados. Os vencimentos são individuais.</p></div></div>
+ <div id="membershipMessage" class="membership-message">Carregue os planos para começar.</div>
+ <div class="membership-grid">
+  <div class="membership-card"><h3>Configurar plano</h3><form id="membershipPlanForm" class="membership-form">
+   <input type="hidden" id="membershipPlanId"><label class="wide">Nome do plano<input id="membershipPlanName" required maxlength="90" placeholder="Ex.: Mensal 4 cortes"></label>
+   <label>Valor (R$)<input id="membershipPlanPrice" type="number" min="0" step="0.01" required></label><label>Cortes por ciclo<input id="membershipPlanCredits" type="number" min="1" max="100" step="1" required></label>
+   <div class="wide membership-actions"><button class="btn btn-primary" type="submit">Salvar plano</button><button class="btn btn-secondary" type="button" onclick="resetMembershipPlan()">Limpar</button></div>
+  </form><div id="membershipPlansList"></div></div>
+  <div class="membership-card"><h3>Vincular cliente</h3><form id="membershipAssignmentForm" class="membership-form">
+   <input type="hidden" id="membershipAssignmentId"><label class="wide">Cliente cadastrado<select id="membershipClient" required></select></label><label class="wide">Plano<select id="membershipPlanSelect" required></select></label>
+   <label>Início do ciclo<input id="membershipStart" type="date" required></label><label>Vencimento do ciclo<input id="membershipEnd" type="date" required></label>
+   <label>Dia de vencimento mensal<input id="membershipDueDay" type="number" min="1" max="31" required value="5"></label><label>Tipo de horário<select id="membershipSchedule"><option value="flexivel">Flexível</option><option value="fixo">Fixo (controle manual nesta etapa)</option></select></label>
+   <label>Créditos utilizados<input id="membershipUsed" type="number" min="0" step="1" value="0" required></label><label>Situação<select id="membershipStatus"><option value="ativo">Ativo</option><option value="suspenso">Suspenso</option><option value="encerrado">Encerrado</option></select></label>
+   <div class="wide membership-actions"><button class="btn btn-primary" type="submit">Salvar mensalista</button><button class="btn btn-secondary" type="button" onclick="resetMembershipAssignment()">Limpar</button></div>
+  </form><p>O registro do plano não cobra nem libera automaticamente cortes no site nesta etapa.</p></div>
+ </div><div class="membership-card"><h3>Mensalistas cadastrados</h3><div id="membershipAssignmentsList"></div></div>
+</section>
+
+<section class="page" id="configuracoes">
       <div class="page-intro">
         <div>
           <span class="section-eyebrow">PREFERÊNCIAS</span>
@@ -1786,7 +1812,7 @@ function renderClients(filter = "") {
       <div><strong>${escapeHtml(item.nome || "Cliente")}</strong><span>Cliente #${item.id}</span></div>
       <div><strong>${escapeHtml(formatPhoneBR(item.contato))}</strong><span>Contato</span></div>
       <div><strong class="client-count-real">${item.atendimentos}</strong><span>atendimento${item.atendimentos === 1 ? "" : "s"}</span></div>
-      <div><strong class="client-last-real">${item.ultimoAtendimento ? formatDateBR(item.ultimoAtendimento) : "—"}</strong><span>último atendimento</span></div>
+      <div><strong class="client-last-real">${item.ultimoAtendimento ? formatDateBR(item.ultimoAtendimento) : "—"}</strong><span>último atendimento</span><button type="button" class="membership-client-btn" onclick="openClientMembership(${Number(item.id)})">Gerenciar mensalidade</button></div>
     </div>`).join("")}</div>`;
 }
 
@@ -2804,9 +2830,58 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
  }));
  document.querySelectorAll('.mobile-tab').forEach(button=>button.addEventListener('click',()=>{toggle(false);goToPage(button.dataset.mobileTab);}));
  const originalGoToPage=goToPage;
- goToPage=function(page){originalGoToPage(page);document.querySelectorAll('.mobile-tab').forEach(button=>button.classList.toggle('active',button.dataset.mobileTab===page));trigger.classList.toggle('active',['produtos','reservas','configuracoes'].includes(page));};
+ goToPage=function(page){originalGoToPage(page);document.querySelectorAll('.mobile-tab').forEach(button=>button.classList.toggle('active',button.dataset.mobileTab===page));trigger.classList.toggle('active',['mensalistas','produtos','reservas','configuracoes'].includes(page));};
  document.addEventListener('keydown',event=>{if(event.key==='Escape')toggle(false)});
 })();
+
+
+/* PLANOS MENSAIS — gestão administrativa, sem alterar agenda/financeiro */
+let membershipPlans=[],membershipAssignments=[],membershipClients=[];
+const membershipEl=id=>document.getElementById(id);
+function membershipNotice(message){membershipEl('membershipMessage').textContent=message;}
+function membershipDateOffset(iso,months){const [y,m,d]=iso.split('-').map(Number);const target=new Date(Date.UTC(y,m-1+months,1));const last=new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0)).getUTCDate();return `${target.getUTCFullYear()}-${String(target.getUTCMonth()+1).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`;}
+function membershipToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function membershipClientName(id){return membershipClients.find(c=>String(c.id)===String(id))?.nome||'Cliente';}
+function resetMembershipPlan(){membershipEl('membershipPlanForm').reset();membershipEl('membershipPlanId').value='';}
+function resetMembershipAssignment(){membershipEl('membershipAssignmentForm').reset();membershipEl('membershipAssignmentId').value='';membershipEl('membershipStart').value=membershipToday();membershipEl('membershipEnd').value=membershipDateOffset(membershipToday(),1);membershipEl('membershipDueDay').value=Number(membershipToday().slice(-2));}
+function openClientMembership(id){goToPage('mensalistas');loadMemberships().then(()=>{membershipEl('membershipClient').value=String(id);membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});});}
+async function loadMemberships(){
+ membershipNotice('Carregando mensalistas...');
+ try{
+  const results=await Promise.all([
+   db.from('planos_mensais').select('*').order('nome'),
+   db.from('mensalidades_clientes').select('*').order('created_at',{ascending:false}),
+   db.from('clientes').select('id,nome').order('nome')
+  ]);
+  for(const r of results)if(r.error)throw r.error;
+  membershipPlans=results[0].data||[];membershipAssignments=results[1].data||[];membershipClients=results[2].data||[];
+  membershipEl('membershipClient').innerHTML='<option value="">Selecione um cliente</option>'+membershipClients.map(c=>`<option value="${c.id}">${financeSafe(c.nome)}</option>`).join('');
+  membershipEl('membershipPlanSelect').innerHTML='<option value="">Selecione um plano</option>'+membershipPlans.filter(p=>p.ativo).map(p=>`<option value="${p.id}">${financeSafe(p.nome)} — ${financeMoney(p.valor)} / ${p.cortes} cortes</option>`).join('');
+  membershipEl('membershipPlansList').innerHTML=membershipPlans.length?membershipPlans.map(p=>`<div class="membership-row"><div><strong>${financeSafe(p.nome)}</strong><small>${financeMoney(p.valor)} · ${p.cortes} cortes · ${p.ativo?'Disponível':'Arquivado'}</small></div><div class="membership-actions"><button onclick="editMembershipPlan('${p.id}')">Editar</button><button onclick="toggleMembershipPlan('${p.id}',${!p.ativo})">${p.ativo?'Arquivar':'Reativar'}</button></div></div>`).join(''):'<p>Nenhum plano cadastrado.</p>';
+  membershipEl('membershipAssignmentsList').innerHTML=membershipAssignments.length?membershipAssignments.map(a=>{
+   const p=membershipPlans.find(p=>String(p.id)===String(a.plano_id));const remaining=Math.max(0,(p?.cortes||0)-a.creditos_usados);
+   return `<div class="membership-row"><div><strong>${financeSafe(membershipClientName(a.cliente_id))}</strong><small>${financeSafe(p?.nome||'Plano arquivado')} · ${financeMoney(p?.valor||0)} · ${remaining} cortes restantes</small><small>${formatDateBR(a.inicio)} a ${formatDateBR(a.fim)} · vence dia ${a.dia_vencimento} · ${a.tipo_horario==='fixo'?'Horário fixo':'Flexível'}</small><span class="membership-tag">${financeSafe(a.status)}</span></div><div class="membership-actions"><button onclick="editMembershipAssignment('${a.id}')">Editar</button><button onclick="closeMembershipAssignment('${a.id}')">Encerrar</button></div></div>`;
+  }).join(''):'<p>Nenhum mensalista cadastrado.</p>';
+  membershipNotice('Planos e mensalistas carregados. As alterações são salvas no Supabase.');
+ }catch(e){console.error(e);membershipNotice('Não foi possível carregar os mensalistas. Execute primeiro o SQL fornecido e confira as permissões.');}
+}
+function editMembershipPlan(id){const p=membershipPlans.find(x=>String(x.id)===String(id));if(!p)return;membershipEl('membershipPlanId').value=p.id;membershipEl('membershipPlanName').value=p.nome;membershipEl('membershipPlanPrice').value=p.valor;membershipEl('membershipPlanCredits').value=p.cortes;membershipEl('membershipPlanForm').scrollIntoView({behavior:'smooth',block:'center'});}
+async function toggleMembershipPlan(id,ativo){if(!confirm(ativo?'Reativar este plano?':'Arquivar este plano? Mensalidades existentes serão mantidas.'))return;const {error}=await db.from('planos_mensais').update({ativo}).eq('id',id);if(error)return membershipNotice('Erro ao alterar plano: '+error.message);await loadMemberships();}
+membershipEl('membershipPlanForm').addEventListener('submit',async e=>{e.preventDefault();const id=membershipEl('membershipPlanId').value;const payload={nome:membershipEl('membershipPlanName').value.trim(),valor:Number(membershipEl('membershipPlanPrice').value),cortes:Number(membershipEl('membershipPlanCredits').value)};if(!payload.nome||payload.valor<0||!Number.isInteger(payload.cortes)||payload.cortes<1)return membershipNotice('Preencha um plano válido.');const result=id?await db.from('planos_mensais').update(payload).eq('id',id):await db.from('planos_mensais').insert(payload);if(result.error)return membershipNotice('Erro ao salvar plano: '+result.error.message);resetMembershipPlan();await loadMemberships();});
+function editMembershipAssignment(id){const a=membershipAssignments.find(x=>String(x.id)===String(id));if(!a)return;for(const [field,val] of [['membershipAssignmentId',a.id],['membershipClient',a.cliente_id],['membershipPlanSelect',a.plano_id],['membershipStart',a.inicio],['membershipEnd',a.fim],['membershipDueDay',a.dia_vencimento],['membershipSchedule',a.tipo_horario],['membershipUsed',a.creditos_usados],['membershipStatus',a.status]])membershipEl(field).value=val;membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});}
+async function closeMembershipAssignment(id){if(!confirm('Encerrar esta mensalidade? O histórico será mantido.'))return;const {error}=await db.from('mensalidades_clientes').update({status:'encerrado'}).eq('id',id);if(error)return membershipNotice('Erro: '+error.message);await loadMemberships();}
+membershipEl('membershipAssignmentForm').addEventListener('submit',async e=>{
+ e.preventDefault();const id=membershipEl('membershipAssignmentId').value;
+ const payload={cliente_id:Number(membershipEl('membershipClient').value),plano_id:membershipEl('membershipPlanSelect').value,inicio:membershipEl('membershipStart').value,fim:membershipEl('membershipEnd').value,dia_vencimento:Number(membershipEl('membershipDueDay').value),tipo_horario:membershipEl('membershipSchedule').value,creditos_usados:Number(membershipEl('membershipUsed').value),status:membershipEl('membershipStatus').value};
+ const plan=membershipPlans.find(p=>String(p.id)===String(payload.plano_id));
+ if(!payload.cliente_id||!plan||payload.fim<=payload.inicio||payload.dia_vencimento<1||payload.dia_vencimento>31||!Number.isInteger(payload.creditos_usados)||payload.creditos_usados<0||payload.creditos_usados>plan.cortes)return membershipNotice('Confira cliente, plano, datas e créditos utilizados.');
+ if(!id&&membershipAssignments.some(a=>a.cliente_id===payload.cliente_id&&a.status!=='encerrado'))return membershipNotice('Este cliente já tem mensalidade aberta. Edite a existente ou encerre-a antes.');
+ const result=id?await db.from('mensalidades_clientes').update(payload).eq('id',id):await db.from('mensalidades_clientes').insert(payload);
+ if(result.error)return membershipNotice('Erro ao salvar mensalista: '+result.error.message);
+ resetMembershipAssignment();await loadMemberships();
+});
+resetMembershipAssignment();
+const membershipGoToPage=goToPage;goToPage=function(page){membershipGoToPage(page);if(page==='mensalistas')loadMemberships();};
 
 initializeAdmin();
 
