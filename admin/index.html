@@ -78,6 +78,19 @@
 /* MENSALISTAS — painel administrativo */
 .membership-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}.membership-card{background:#fff;border:1px solid #e7dfd8;border-radius:14px;padding:18px}.membership-card h3{margin:0 0 12px;font-size:16px}.membership-card p{color:#786a61;font-size:12px;line-height:1.5}.membership-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.membership-form label{font-size:12px;font-weight:700;display:flex;flex-direction:column;gap:6px}.membership-form input,.membership-form select{width:100%;min-width:0;box-sizing:border-box;padding:11px;border:1px solid #dcd1c6;border-radius:9px;background:white;font-size:14px}.membership-form .wide{grid-column:1/-1}.membership-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.membership-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #ece4dc}.membership-row:last-child{border-bottom:0}.membership-row strong{font-size:13px}.membership-row small{display:block;color:#7e7168;margin-top:5px}.membership-tag{display:inline-block;border-radius:30px;padding:5px 9px;font-size:11px;background:#eee6dc;color:#4b3020}.membership-message{padding:12px;background:#f6efe6;border-radius:10px;font-size:12px;margin:12px 0}.membership-row button{padding:8px;border:1px solid #dcd1c6;border-radius:8px;background:white;cursor:pointer}.membership-client-btn{margin-top:6px;border:1px solid #bba18b;border-radius:7px;background:#fff8ee;padding:7px 9px;color:#4b3020;cursor:pointer;font-size:11px;font-weight:700}@media(max-width:700px){.membership-grid{grid-template-columns:1fr}.membership-form{grid-template-columns:1fr}.membership-form .wide{grid-column:auto}.membership-row{align-items:flex-start;flex-wrap:wrap}}
 </style>
+<style>
+/* Mensalistas: leitura simples e adaptável */
+.membership-card>p{margin:0 0 16px;font-size:13px;line-height:1.5;color:#76665c}
+.membership-person{border:1px solid #e8ded3;border-radius:14px;padding:17px;margin:12px 0;background:#fffdfb}
+.membership-person-top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.membership-person h4{margin:0 0 8px;font-size:17px;color:#2f2119}
+.membership-balance{text-align:right}.membership-balance strong{display:block;color:#22754e;font-size:21px}.membership-balance small{display:block;color:#786a61;font-size:12px;margin-top:4px}
+.membership-progress{height:10px;border-radius:50px;background:#e8eee9;overflow:hidden;margin:15px 0 10px}.membership-progress span{display:block;height:100%;background:#4b3020;border-radius:50px}
+.membership-person-details{font-size:12px;line-height:1.55;color:#76665c;margin:6px 0}
+.membership-tag.is-active{background:#e7f5eb;color:#237148}.membership-tag.is-inactive{background:#fff1e8;color:#8b4b24}
+.membership-person .membership-actions{margin-top:14px}.membership-person .membership-actions button{font-size:12px;font-weight:700;padding:10px 13px}
+@media(max-width:700px){.membership-card{padding:16px}.membership-person{padding:14px}.membership-balance{text-align:left}.membership-balance strong{font-size:19px}.membership-person-top{align-items:flex-start;flex-direction:column;gap:10px}.membership-person .membership-actions button{flex:1}.membership-card h3{font-size:17px}}
+</style>
 </head>
 
 <body>
@@ -832,19 +845,19 @@
  <div class="page-intro"><div><span class="section-eyebrow">GESTÃO DE PLANOS</span><h2>Mensalistas</h2><p>Crie planos e atribua mensalidades aos clientes cadastrados. Os vencimentos são individuais.</p></div></div>
  <div id="membershipMessage" class="membership-message">Carregue os planos para começar.</div>
  <div class="membership-grid">
-  <div class="membership-card"><h3>Configurar plano</h3><form id="membershipPlanForm" class="membership-form">
+  <div class="membership-card"><h3>1. Criar um plano</h3><p>Defina o preço mensal e quantos cortes estão incluídos. Você só precisa criar cada tipo de plano uma vez.</p><form id="membershipPlanForm" class="membership-form">
    <input type="hidden" id="membershipPlanId"><label class="wide">Nome do plano<input id="membershipPlanName" required maxlength="90" placeholder="Ex.: Mensal 4 cortes"></label>
-   <label>Valor (R$)<input id="membershipPlanPrice" type="number" min="0" step="0.01" required></label><label>Cortes por ciclo<input id="membershipPlanCredits" type="number" min="1" max="100" step="1" required></label>
+   <label>Valor (R$)<input id="membershipPlanPrice" type="number" min="0" step="0.01" required></label><label>Quantidade de cortes por mês<input id="membershipPlanCredits" type="number" min="1" max="100" step="1" required></label>
    <div class="wide membership-actions"><button class="btn btn-primary" type="submit">Salvar plano</button><button class="btn btn-secondary" type="button" onclick="resetMembershipPlan()">Limpar</button></div>
   </form><div id="membershipPlansList"></div></div>
-  <div class="membership-card"><h3>Vincular cliente</h3><form id="membershipAssignmentForm" class="membership-form">
+  <div class="membership-card"><h3>2. Adicionar um mensalista</h3><p>Escolha o cliente, selecione o plano e informe quando a mensalidade começa e termina.</p><form id="membershipAssignmentForm" class="membership-form">
    <input type="hidden" id="membershipAssignmentId"><label class="wide">Cliente cadastrado<select id="membershipClient" required></select></label><label class="wide">Plano<select id="membershipPlanSelect" required></select></label>
-   <label>Início do ciclo<input id="membershipStart" type="date" required></label><label>Vencimento do ciclo<input id="membershipEnd" type="date" required></label>
-   <label>Dia de vencimento mensal<input id="membershipDueDay" type="number" min="1" max="31" required value="5"></label><label>Tipo de horário<select id="membershipSchedule"><option value="flexivel">Flexível</option><option value="fixo">Fixo (controle manual nesta etapa)</option></select></label>
-   <label>Créditos utilizados<input id="membershipUsed" type="number" min="0" step="1" value="0" required></label><label>Situação<select id="membershipStatus"><option value="ativo">Ativo</option><option value="suspenso">Suspenso</option><option value="encerrado">Encerrado</option></select></label>
+   <label>Início da mensalidade<input id="membershipStart" type="date" required></label><label>Validade até<input id="membershipEnd" type="date" required></label>
+   <label>Dia em que o cliente costuma pagar<input id="membershipDueDay" type="number" min="1" max="31" required value="5"></label><label>Tipo de horário<select id="membershipSchedule"><option value="flexivel">Flexível</option><option value="fixo">Fixo (controle manual nesta etapa)</option></select></label>
+   <label>Cortes que o cliente já fez<input id="membershipUsed" type="number" min="0" step="1" value="0" required></label><label>Situação<select id="membershipStatus"><option value="ativo">Ativo</option><option value="suspenso">Suspenso</option><option value="encerrado">Encerrado</option></select></label>
    <div class="wide membership-actions"><button class="btn btn-primary" type="submit">Salvar mensalista</button><button class="btn btn-secondary" type="button" onclick="resetMembershipAssignment()">Limpar</button></div>
   </form><p>O registro do plano não cobra nem libera automaticamente cortes no site nesta etapa.</p></div>
- </div><div class="membership-card"><h3>Mensalistas cadastrados</h3><div id="membershipAssignmentsList"></div></div>
+ </div><div class="membership-card"><h3>3. Acompanhar mensalistas</h3><p>Veja rapidamente quantos cortes cada pessoa ainda pode usar neste período.</p><div id="membershipAssignmentsList"></div></div>
 </section>
 
 <section class="page" id="configuracoes">
@@ -1990,6 +2003,7 @@ const pageNames = {
   },
 
   financeiro: { title: "Financeiro", breadcrumb: "GESTÃO" },
+  mensalistas: { title: "Mensalistas", breadcrumb: "GESTÃO DE PLANOS" },
 
   configuracoes: {
     title: "Configurações",
@@ -2062,6 +2076,7 @@ function goToPage(page) {
   if (page === "configuracoes" && !businessDataLoaded) loadBusinessData();
   if (page === "agenda") loadAgenda();
   if (page === "financeiro") loadFinance();
+  if (page === "mensalistas") loadMemberships();
 
   window.scrollTo({
     top: 0,
@@ -2846,7 +2861,7 @@ function resetMembershipPlan(){membershipEl('membershipPlanForm').reset();member
 function resetMembershipAssignment(){membershipEl('membershipAssignmentForm').reset();membershipEl('membershipAssignmentId').value='';membershipEl('membershipStart').value=membershipToday();membershipEl('membershipEnd').value=membershipDateOffset(membershipToday(),1);membershipEl('membershipDueDay').value=Number(membershipToday().slice(-2));}
 function openClientMembership(id){goToPage('mensalistas');loadMemberships().then(()=>{membershipEl('membershipClient').value=String(id);membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});});}
 async function loadMemberships(){
- membershipNotice('Carregando mensalistas...');
+ membershipNotice('Buscando planos e mensalistas...');
  try{
   const results=await Promise.all([
    db.from('planos_mensais').select('*').order('nome'),
@@ -2859,11 +2874,16 @@ async function loadMemberships(){
   membershipEl('membershipPlanSelect').innerHTML='<option value="">Selecione um plano</option>'+membershipPlans.filter(p=>p.ativo).map(p=>`<option value="${p.id}">${financeSafe(p.nome)} — ${financeMoney(p.valor)} / ${p.cortes} cortes</option>`).join('');
   membershipEl('membershipPlansList').innerHTML=membershipPlans.length?membershipPlans.map(p=>`<div class="membership-row"><div><strong>${financeSafe(p.nome)}</strong><small>${financeMoney(p.valor)} · ${p.cortes} cortes · ${p.ativo?'Disponível':'Arquivado'}</small></div><div class="membership-actions"><button onclick="editMembershipPlan('${p.id}')">Editar</button><button onclick="toggleMembershipPlan('${p.id}',${!p.ativo})">${p.ativo?'Arquivar':'Reativar'}</button></div></div>`).join(''):'<p>Nenhum plano cadastrado.</p>';
   membershipEl('membershipAssignmentsList').innerHTML=membershipAssignments.length?membershipAssignments.map(a=>{
-   const p=membershipPlans.find(p=>String(p.id)===String(a.plano_id));const remaining=Math.max(0,(p?.cortes||0)-a.creditos_usados);
-   return `<div class="membership-row"><div><strong>${financeSafe(membershipClientName(a.cliente_id))}</strong><small>${financeSafe(p?.nome||'Plano arquivado')} · ${financeMoney(p?.valor||0)} · ${remaining} cortes restantes</small><small>${formatDateBR(a.inicio)} a ${formatDateBR(a.fim)} · vence dia ${a.dia_vencimento} · ${a.tipo_horario==='fixo'?'Horário fixo':'Flexível'}</small><span class="membership-tag">${financeSafe(a.status)}</span></div><div class="membership-actions"><button onclick="editMembershipAssignment('${a.id}')">Editar</button><button onclick="closeMembershipAssignment('${a.id}')">Encerrar</button></div></div>`;
-  }).join(''):'<p>Nenhum mensalista cadastrado.</p>';
-  membershipNotice('Planos e mensalistas carregados. As alterações são salvas no Supabase.');
- }catch(e){console.error(e);membershipNotice('Não foi possível carregar os mensalistas. Execute primeiro o SQL fornecido e confira as permissões.');}
+   const p=membershipPlans.find(p=>String(p.id)===String(a.plano_id));
+   const total=Number(p?.cortes||0),used=Number(a.creditos_usados||0),remaining=Math.max(0,total-used);
+   const expired=a.fim<membershipToday();
+   const active=a.status==='ativo'&&!expired;
+   const statusText=a.status==='encerrado'?'Encerrado':a.status==='suspenso'?'Suspenso':expired?'Prazo vencido':'Ativo';
+   const statusClass=active?'is-active':'is-inactive';
+   return `<article class="membership-person"><div class="membership-person-top"><div><h4>${financeSafe(membershipClientName(a.cliente_id))}</h4><span class="membership-tag ${statusClass}">${statusText}</span></div><div class="membership-balance"><strong>${remaining} ${remaining===1?'corte restante':'cortes restantes'}</strong><small>de ${total} cortes do plano</small></div></div><div class="membership-progress" role="progressbar" aria-label="Cortes utilizados" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${Math.min(total,used)}"><span style="width:${total?Math.min(100,used/total*100):0}%"></span></div><p class="membership-person-details">${financeSafe(p?.nome||'Plano indisponível')} · ${used} ${used===1?'corte utilizado':'cortes utilizados'} · ${financeMoney(p?.valor||0)}</p><p class="membership-person-details">Válido de ${formatDateBR(a.inicio)} até ${formatDateBR(a.fim)} · Pagamento: dia ${a.dia_vencimento} · ${a.tipo_horario==='fixo'?'Horário fixo':'Horário flexível'}</p><div class="membership-actions"><button type="button" onclick="editMembershipAssignment('${a.id}')">Editar mensalidade</button><button type="button" onclick="closeMembershipAssignment('${a.id}')">Encerrar</button></div></article>`;
+  }).join(''):'<p>Nenhum mensalista cadastrado. Crie um plano e vincule um cliente acima.</p>';
+  membershipNotice('Tudo pronto! Confira abaixo os planos e os cortes disponíveis de cada mensalista.');
+ }catch(e){console.error(e);membershipNotice('Não foi possível carregar os mensalistas: '+(e.message||'erro de conexão')+'. Confira a conexão e as permissões do Supabase.');}
 }
 function editMembershipPlan(id){const p=membershipPlans.find(x=>String(x.id)===String(id));if(!p)return;membershipEl('membershipPlanId').value=p.id;membershipEl('membershipPlanName').value=p.nome;membershipEl('membershipPlanPrice').value=p.valor;membershipEl('membershipPlanCredits').value=p.cortes;membershipEl('membershipPlanForm').scrollIntoView({behavior:'smooth',block:'center'});}
 async function toggleMembershipPlan(id,ativo){if(!confirm(ativo?'Reativar este plano?':'Arquivar este plano? Mensalidades existentes serão mantidas.'))return;const {error}=await db.from('planos_mensais').update({ativo}).eq('id',id);if(error)return membershipNotice('Erro ao alterar plano: '+error.message);await loadMemberships();}
@@ -2881,7 +2901,7 @@ membershipEl('membershipAssignmentForm').addEventListener('submit',async e=>{
  resetMembershipAssignment();await loadMemberships();
 });
 resetMembershipAssignment();
-const membershipGoToPage=goToPage;goToPage=function(page){membershipGoToPage(page);if(page==='mensalistas')loadMemberships();};
+
 
 initializeAdmin();
 
