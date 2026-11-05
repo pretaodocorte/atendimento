@@ -1,2115 +1,2601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="theme-color" content="#151515">
+
+  <title>Painel | Pretão do Corte</title>
+
+  <link rel="stylesheet" href="admin.css?v=mobile4">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    .hidden{display:none!important}
+    .auth-screen{min-height:100vh;background:#f4eadc;color:#2f2119;display:grid;place-items:center;padding:24px;font-family:Arial,sans-serif}
+    .auth-shell{width:min(1080px,100%);min-height:640px;background:#fffaf4;border:1px solid rgba(75,48,32,.12);border-radius:28px;overflow:hidden;display:grid;grid-template-columns:1.05fr .95fr;box-shadow:0 28px 80px rgba(48,31,21,.14)}
+    .auth-brand{background:#1b1714;color:#fff;padding:56px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+    .auth-brand:after{content:"";position:absolute;width:340px;height:340px;border-radius:50%;background:rgba(190,145,91,.10);right:-130px;bottom:-130px}
+    .auth-brand img{width:170px;max-height:120px;object-fit:contain;object-position:left center;margin-bottom:52px}
+    .auth-kicker{display:block;color:#c99a63;font-size:12px;font-weight:800;letter-spacing:.18em;margin-bottom:16px}
+    .auth-brand h1{font-size:clamp(34px,4vw,58px);line-height:1.02;margin:0 0 18px;max-width:560px}
+    .auth-brand p{color:#cfc6be;font-size:17px;line-height:1.6;max-width:470px;margin:0}
+    .auth-credit{font-size:12px;color:#8f847c;position:relative;z-index:1}.auth-credit strong{color:#d9c0a2}
+    .auth-form-area{padding:64px;display:flex;align-items:center}
+    .auth-box{width:100%;max-width:390px;margin:auto}
+    .auth-mobile-logo{display:none;text-align:center;margin-bottom:28px}.auth-mobile-logo img{width:130px}
+    .auth-box h2{font-size:32px;margin:7px 0 10px;color:#2f2119}.auth-desc{margin:0 0 32px;color:#786a61;line-height:1.55}
+    .auth-box label{display:block;font-size:13px;font-weight:800;margin:0 0 8px;color:#4b3020}
+    .auth-box input{width:100%;height:52px;border:1px solid #d9cbbd;border-radius:12px;padding:0 14px;background:#fff;color:#2f2119;font-size:15px;outline:none;box-sizing:border-box}
+    .auth-box input:focus{border-color:#9a6c42;box-shadow:0 0 0 3px rgba(154,108,66,.10)}
+    .auth-field{margin-bottom:18px}.auth-password{position:relative}.auth-password input{padding-right:72px}.auth-password button{position:absolute;right:8px;top:8px;height:36px;border:0;background:#f3e8d7;border-radius:9px;padding:0 12px;color:#4b3020;font-weight:800;cursor:pointer}
+    .auth-submit{width:100%;height:54px;border:0;border-radius:12px;background:#4b3020;color:#fff;font-weight:800;font-size:15px;cursor:pointer;margin-top:8px;transition:.2s}.auth-submit:hover{transform:translateY(-1px);background:#382319}.auth-submit:disabled{opacity:.65;cursor:wait;transform:none}
+    .auth-error{display:none;background:#fff0ee;border:1px solid #efc5bf;color:#8d2f24;border-radius:10px;padding:11px 12px;font-size:13px;margin:4px 0 10px}.auth-error.show{display:block}
+    .auth-secure{margin-top:20px;text-align:center;color:#8c7d72;font-size:12px}.auth-secure b{color:#56825b}
+    .auth-loading{text-align:center}.auth-loading img{width:150px;margin-bottom:22px}.auth-spinner{width:34px;height:34px;border:3px solid #ddcdbd;border-top-color:#4b3020;border-radius:50%;margin:0 auto 14px;animation:authspin .8s linear infinite}@keyframes authspin{to{transform:rotate(360deg)}}
+    .logout-btn{border:0;background:transparent;color:inherit;cursor:pointer;font-size:18px;padding:8px;border-radius:8px}.logout-btn:hover{background:rgba(0,0,0,.06)}
+    @media(max-width:780px){.auth-screen{padding:0;background:#fffaf4}.auth-shell{min-height:100vh;border:0;border-radius:0;display:block;box-shadow:none}.auth-brand{display:none}.auth-form-area{min-height:100vh;padding:32px 24px}.auth-mobile-logo{display:block}.auth-box h2{text-align:center;font-size:28px}.auth-desc{text-align:center}.auth-box>.section-eyebrow{display:block;text-align:center}}
+
+    .settings-panel.hidden{display:none!important}
+    .hours-list{display:flex;flex-direction:column;border-top:1px solid #eee3d8;margin-top:24px}
+    .hours-row{display:grid;grid-template-columns:minmax(170px,1fr) 56px minmax(250px,1.25fr);gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid #eee3d8}
+    .hours-day{display:flex;flex-direction:column;gap:4px}.hours-day strong{font-size:14px;color:#251b15}.hours-day span{font-size:12px;color:#8b7d72}
+    .hours-times{display:flex;align-items:center;justify-content:flex-end;gap:10px}.hours-times input{width:118px;height:42px;border:1px solid #ddd0c3;border-radius:10px;padding:0 10px;background:#fff;color:#2f2119}.hours-times input:disabled{background:#f5f2ee;color:#aaa;cursor:not-allowed}.hours-times span{font-size:12px;color:#8b7d72}
+    .hours-switch{position:relative;width:44px;height:24px;display:block}.hours-switch input{opacity:0;width:0;height:0}.hours-switch span{position:absolute;inset:0;background:#d8d1ca;border-radius:30px;cursor:pointer;transition:.2s}.hours-switch span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:.2s}.hours-switch input:checked+span{background:#4b3020}.hours-switch input:checked+span:before{transform:translateX(20px)}
+    .schedule-message{margin:18px 0 0;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.schedule-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.schedule-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.schedule-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
+    @media(max-width:760px){.hours-row{grid-template-columns:1fr 50px}.hours-times{grid-column:1/-1;justify-content:flex-start}.hours-times input{flex:1;width:auto}.settings-footer{gap:14px;align-items:flex-start}}
+    .service-message{margin:0 0 18px;padding:12px 14px;border-radius:10px;font-size:13px;font-weight:700}.service-message.success{display:block!important;background:#edf7ef;color:#35613c;border:1px solid #cfe7d3}.service-message.error{display:block!important;background:#fff0ee;color:#8d2f24;border:1px solid #efc5bf}.service-message.info{display:block!important;background:#f5eee5;color:#6b4a31;border:1px solid #e4d3c0}
+    .service-empty-real{padding:54px 24px;text-align:center;color:#8b7d72}.service-empty-real strong{display:block;color:#2f2119;font-size:18px;margin-bottom:7px}
+    .status.inactive-status{background:#f1efec;color:#786e67}.status.inactive-status i{background:#9a918a}
+    .agenda-real-list{padding:8px 20px 20px}
+    .agenda-item-real{display:grid;grid-template-columns:82px minmax(0,1.25fr) minmax(110px,.7fr) auto minmax(180px,auto);gap:16px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}
+    .agenda-time-real{font-size:18px;font-weight:900;color:var(--brown)}
+    .agenda-client-real strong,.agenda-service-real strong{display:block;font-size:11px;color:var(--text)}
+    .agenda-client-real span,.agenda-service-real span{display:block;margin-top:4px;font-size:8px;color:var(--muted)}
+    .agenda-status-real{padding:6px 9px;border-radius:100px;font-size:7px;font-weight:900;text-transform:uppercase;background:#f3eee8;color:var(--brown)}
+    .agenda-status-real.concluido{background:#eaf6ef;color:#2c8057}
+    .agenda-status-real.cancelado,.agenda-status-real.faltou{background:#fff0ee;color:#8d2f24}
+    .agenda-actions-real{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .agenda-action-btn{border:1px solid #ded5cd;background:#fff;border-radius:8px;padding:7px 9px;font-size:7px;font-weight:900;text-transform:uppercase;cursor:pointer;color:#4b3020}
+    .agenda-action-btn:hover{background:#f7f1eb}
+    .agenda-action-btn.success{border-color:#cfe7d3;color:#2c8057}
+    .agenda-action-btn.danger{border-color:#efc5bf;color:#8d2f24}
+    .agenda-action-btn:disabled{opacity:.5;cursor:wait}
+    @media(max-width:680px){.agenda-item-real{grid-template-columns:64px 1fr auto}.agenda-service-real{grid-column:2/4}.agenda-actions-real{grid-column:1/4;justify-content:flex-start}.agenda-real-list{padding:5px 15px 18px}}
+    .agenda-block-item{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:16px;align-items:center;padding:15px 20px;border-top:1px solid #eadfd5;background:#fff8f3}
+    .agenda-block-item:first-child{border-top:0}.agenda-block-time{font-size:16px;font-weight:900;color:#8d2f24}.agenda-block-data strong{display:block;font-size:11px;color:#4b3020}.agenda-block-data span{display:block;margin-top:4px;font-size:9px;color:#8b7d72}.agenda-block-tag{display:inline-block;margin-top:6px;padding:5px 8px;border-radius:100px;background:#fff0ee;color:#8d2f24;font-size:7px;font-weight:900;text-transform:uppercase}
+    .financial-periods{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.16)}.financial-periods .day-stat{margin-top:8px}
+    @media(max-width:680px){.agenda-block-item{grid-template-columns:70px 1fr}.agenda-block-item .agenda-actions-real{grid-column:1/3}}
+    .clients-list-real{padding:0 20px 20px}.client-row-real{display:grid;grid-template-columns:minmax(180px,1.3fr) minmax(150px,.8fr) 110px 110px;gap:18px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}.client-row-real strong{display:block;font-size:12px;color:var(--text)}.client-row-real span{display:block;margin-top:4px;font-size:9px;color:var(--muted)}.client-count-real{font-weight:900;color:var(--brown)}.client-last-real{font-size:10px;color:var(--muted)}@media(max-width:680px){.client-row-real{grid-template-columns:1fr auto}.client-row-real>div:nth-child(2),.client-row-real>div:nth-child(4){grid-column:1/3}}
+
+    /* PRODUTOS E RESERVAS */
+    .product-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.product-card{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff}.product-photo{aspect-ratio:4/3;background:#f3eee8;display:grid;place-items:center;overflow:hidden}.product-photo img{width:100%;height:100%;object-fit:cover}.product-photo span{font-size:38px}.product-body{padding:16px}.product-meta{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:800;letter-spacing:.05em}.product-body h3{margin:7px 0 5px;font-size:16px}.product-description{font-size:11px;color:var(--muted);line-height:1.5;min-height:34px}.product-price{font-size:20px;font-weight:900;color:var(--brown);margin:10px 0}.product-stock{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0 14px}.product-badge{font-size:8px;font-weight:900;text-transform:uppercase;padding:6px 8px;border-radius:100px;background:#f3eee8;color:#6b4a31}.product-badge.ok{background:#eaf6ef;color:#2c8057}.product-badge.low{background:#fff5df;color:#8a6115}.product-badge.out{background:#fff0ee;color:#8d2f24}.product-actions{display:flex;gap:7px;flex-wrap:wrap}.product-actions button{flex:1;min-width:82px}.product-empty{grid-column:1/-1}.product-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.product-form-grid .full{grid-column:1/-1}.product-form-grid label{display:block;font-size:11px;font-weight:900;margin-bottom:7px;color:#4b3020}.product-form-grid input,.product-form-grid textarea,.product-form-grid select{width:100%;box-sizing:border-box;border:1px solid #ddd0c3;border-radius:10px;padding:11px;background:#fff;color:#2f2119}.product-form-grid textarea{min-height:90px;resize:vertical}.product-preview{width:100%;max-height:230px;object-fit:contain;border-radius:12px;background:#f3eee8;margin-top:9px;display:none}.reservation-list{display:flex;flex-direction:column}.reservation-row{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(170px,1fr) 90px 110px minmax(190px,auto);gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}.reservation-row strong{display:block;font-size:11px}.reservation-row span{display:block;font-size:9px;color:var(--muted);margin-top:4px}.reservation-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.registered-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#edf7ef;color:#35613c!important;font-size:7px!important;font-weight:900}.visitor-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#f3eee8;color:#6b4a31!important;font-size:7px!important;font-weight:900}@media(max-width:900px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-row{grid-template-columns:1fr 1fr}.reservation-actions{justify-content:flex-start;grid-column:1/-1}}@media(max-width:600px){.product-grid{grid-template-columns:1fr}.product-form-grid{grid-template-columns:1fr}.product-form-grid .full{grid-column:auto}.reservation-row{grid-template-columns:1fr}}
+  </style>
+<style>.mobile-more-trigger,.mobile-more-backdrop,.mobile-more-panel{display:none}</style>
+</head>
+
+<body>
+
+<div id="loadingScreen" class="auth-screen">
+  <div class="auth-loading">
+    <img src="../logo.png" alt="Pretão do Corte">
+    <div class="auth-spinner"></div>
+    <div>Carregando painel...</div>
+  </div>
+</div>
+
+<div id="loginScreen" class="auth-screen hidden">
+  <div class="auth-shell">
+    <section class="auth-brand">
+      <div>
+        <img src="../logo.png" alt="Pretão do Corte">
+        <span class="auth-kicker">ÁREA ADMINISTRATIVA</span>
+        <h1>Gestão simples. Barbearia organizada.</h1>
+        <p>Agenda, serviços e clientes em um só lugar, com acesso exclusivo para a administração.</p>
+      </div>
+      <div class="auth-credit">Sistema desenvolvido por <strong>Harri Novaes Digital</strong></div>
+    </section>
+    <section class="auth-form-area">
+      <div class="auth-box">
+        <div class="auth-mobile-logo"><img src="../logo.png" alt="Pretão do Corte"></div>
+        <span class="section-eyebrow">BEM-VINDO</span>
+        <h2>Entrar no painel</h2>
+        <p class="auth-desc">Use o e-mail e a senha cadastrados para acessar a administração.</p>
+        <form id="loginForm">
+          <div class="auth-field">
+            <label for="loginEmail">E-mail</label>
+            <input id="loginEmail" type="email" autocomplete="email" placeholder="seu@email.com" required>
+          </div>
+          <div class="auth-field">
+            <label for="loginPassword">Senha</label>
+            <div class="auth-password">
+              <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
+              <button id="togglePassword" type="button">Ver</button>
+            </div>
+          </div>
+          <div id="loginError" class="auth-error"></div>
+          <button id="loginButton" class="auth-submit" type="submit">Entrar no painel</button>
+        </form>
+        <div class="auth-secure"><b>●</b> Acesso protegido pelo Supabase</div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="adminApp" class="app hidden">
+
+  <!-- ==========================================
+       SIDEBAR
+  =========================================== -->
+
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+
+      <div class="brand-logo">
+        <img src="../logo.png" alt="Pretão do Corte">
+      </div>
+
+      <div class="brand-name">
+        <strong>Pretão do Corte</strong>
+        <span>Administração</span>
+      </div>
+
+    </div>
+
+
+    <div class="sidebar-section">
+
+      <span class="sidebar-label">
+        PRINCIPAL
+      </span>
+
+      <nav class="sidebar-nav">
+
+        <button
+          class="nav-item active"
+          data-page="agenda"
+        >
+          <span class="nav-icon">▦</span>
+          <span>Agenda</span>
+        </button>
+
+        <button
+          class="nav-item"
+          data-page="servicos"
+        >
+          <span class="nav-icon">✂</span>
+          <span>Serviços</span>
+        </button>
+
+
+        <button class="nav-item" data-page="produtos"><span class="nav-icon">📦</span><span>Produtos</span></button>
+        <button class="nav-item" data-page="reservas"><span class="nav-icon">🛍</span><span>Reservas</span></button>
+        <button class="nav-item" data-page="financeiro"><span class="nav-icon">◈</span><span>Financeiro</span></button>
+        <button
+          class="nav-item"
+          data-page="clientes"
+        >
+          <span class="nav-icon">♟</span>
+          <span>Clientes</span>
+        </button>
+
+      </nav>
+
+    </div>
+
+
+    <div class="sidebar-section">
+
+      <span class="sidebar-label">
+        SISTEMA
+      </span>
+
+      <nav class="sidebar-nav">
+
+        <button
+          class="nav-item"
+          data-page="configuracoes"
+        >
+          <span class="nav-icon">⚙</span>
+          <span>Configurações</span>
+        </button>
+
+      </nav>
+
+    </div>
+
+
+
+
+    <div class="sidebar-profile">
+
+      <div class="profile-avatar">
+        K
+      </div>
+
+      <div class="profile-data">
+        <strong id="sidebarAdminName">Kaique Vital</strong>
+        <span>Administrador</span>
+      </div>
+
+      <button class="profile-more logout-btn" id="logoutButton" title="Sair">
+        ↪
+      </button>
+
+    </div>
+
+
+    <div class="developer">
+      <span>Sistema por</span>
+      <strong>Harri Novaes Digital</strong>
+    </div>
+
+  </aside>
+
+
+  <!-- ==========================================
+       CONTEÚDO
+  =========================================== -->
+
+<nav class="mobile-bottom-nav" aria-label="Navegação principal">
+<button type="button" class="mobile-tab active" data-mobile-tab="agenda"><span class="mobile-tab-icon">▦</span><span>Agenda</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="servicos"><span class="mobile-tab-icon">✂</span><span>Serviços</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="financeiro"><span class="mobile-tab-icon">◈</span><span>Financeiro</span></button>
+<button type="button" class="mobile-tab" data-mobile-tab="clientes"><span class="mobile-tab-icon">♟</span><span>Clientes</span></button>
+<button type="button" class="mobile-more-trigger" id="mobileMoreTrigger" aria-label="Mais opções" aria-expanded="false" aria-controls="mobileMorePanel"><span class="mobile-tab-icon">☰</span><span>Mais</span></button>
+</nav>
+    <div class="mobile-more-backdrop" id="mobileMoreBackdrop" hidden></div>
+  <nav class="mobile-more-panel" id="mobileMorePanel" aria-label="Outras áreas do painel" hidden>
+    <div class="mobile-more-heading"><strong>Outras opções</strong><button type="button" id="mobileMoreClose" aria-label="Fechar menu">×</button></div>
+    <button type="button" data-mobile-page="produtos"><span>▣</span> Produtos <b>›</b></button>
+    <button type="button" data-mobile-page="reservas"><span>▤</span> Reservas <b>›</b></button>
+    <button type="button" data-mobile-page="configuracoes"><span>⚙</span> Configurações <b>›</b></button>
+  </nav>
+
+<main class="main">
+
+    <!-- TOPBAR -->
+
+    <header class="topbar">
+
+      <div class="mobile-brand">
+        <img src="../logo.png" alt="">
+      </div>
+
+      <div class="topbar-title">
+
+        <span id="breadcrumb">
+          VISÃO GERAL
+        </span>
+
+        <h1 id="pageTitle">
+          Agenda
+        </h1>
+
+      </div>
+
+
+      <div class="topbar-actions">
+
+        <div class="system-status">
+          <span></span>
+          Sistema online
+        </div>
+
+        <button class="notification-button">
+          ♢
+        </button>
+
+        <button class="topbar-user logout-btn" id="mobileLogoutButton" title="Sair">
+          K
+        </button>
+
+      </div>
+
+    </header>
+
+
+    <!-- ==========================================
+         AGENDA
+    =========================================== -->
+
+    <section
+      class="page active"
+      id="agenda"
+    >
+
+      <div class="welcome-row">
+
+        <div>
+
+          <span class="section-eyebrow">
+            PRETÃO DO CORTE
+          </span>
+
+          <h2 id="welcomeTitle">
+            Olá, Kaique.
+          </h2>
+
+          <p id="todayDate">
+            Carregando data...
+          </p>
+
+        </div>
+
+
+        <div class="welcome-actions">
+
+          <button
+            class="btn btn-secondary"
+            onclick="openBlockModal()"
+          >
+            <span>⊘</span>
+            Bloquear horário
+          </button>
+
+          <button
+            class="btn btn-primary"
+            onclick="openExtraHoursModal()"
+          >
+            <span>＋</span>
+            Adicionar horário
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- RESUMO -->
+
+      <div class="summary-grid">
+
+        <article class="summary-card">
+
+          <div class="summary-top">
+
+            <span class="summary-label">
+              ATENDIMENTOS
+            </span>
+
+            <div class="summary-icon">
+              ✂
+            </div>
+
+          </div>
+
+          <strong class="summary-number" id="todayAppointmentsCount">
+            0
+          </strong>
+
+          <span class="summary-description">
+            agendamentos hoje
+          </span>
+
+        </article>
+
+
+        <article class="summary-card">
+
+          <div class="summary-top">
+
+            <span class="summary-label">
+              PRÓXIMO CLIENTE
+            </span>
+
+            <div class="summary-icon">
+              ◷
+            </div>
+
+          </div>
+
+          <strong class="summary-number small" id="nextClientTime">
+            Livre
+          </strong>
+
+          <span class="summary-description" id="nextClientDescription">
+            nenhum atendimento próximo
+          </span>
+
+        </article>
+
+
+        <article class="summary-card">
+
+          <div class="summary-top">
+
+            <span class="summary-label">
+              PREVISÃO DO DIA
+            </span>
+
+            <div class="summary-icon">
+              R$
+            </div>
+
+          </div>
+
+          <strong class="summary-number" id="todayRevenueForecast">
+            R$ 0
+          </strong>
+
+          <span class="summary-description">
+            em serviços agendados
+          </span>
+
+        </article>
+
+
+        <article class="summary-card highlight">
+
+          <div class="summary-top">
+
+            <span class="summary-label">
+              HORÁRIOS LIVRES
+            </span>
+
+            <div class="summary-icon">
+              +
+            </div>
+
+          </div>
+
+          <strong class="summary-number" id="freeSlotsCount">
+            —
+          </strong>
+
+          <span class="summary-description" id="freeSlotsDescription">
+            calculando disponibilidade
+          </span>
+
+        </article>
+
+      </div>
+
+
+      <!-- AGENDA DO DIA -->
+
+      <div class="content-grid">
+
+        <section class="card schedule-card">
+
+          <div class="card-header">
+
+            <div>
+
+              <span class="section-eyebrow" id="agendaDayLabel">
+                HOJE
+              </span>
+
+              <h3 id="agendaDateTitle">
+                Agenda do dia
+              </h3>
+
+            </div>
+
+
+            <div class="date-navigation">
+
+              <button type="button" onclick="changeAgendaDay(-1)">‹</button>
+
+              <button class="today-button" type="button" onclick="goAgendaToday()">
+                Hoje
+              </button>
+
+              <button type="button" onclick="changeAgendaDay(1)">›</button>
+
+            </div>
+
+          </div>
+          <div id="agendaList">
+            <div class="schedule-empty">
+              <div class="empty-symbol">✂</div>
+              <h3>Carregando agenda...</h3>
+              <p>Buscando os agendamentos no sistema.</p>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- PAINEL LATERAL -->
+
+        <aside class="day-panel">
+
+          <div class="day-card dark-card">
+
+            <span class="section-eyebrow gold">
+              RESUMO
+            </span>
+
+            <h3 id="daySummaryTitle">
+              Dia tranquilo por enquanto.
+            </h3>
+
+            <p id="daySummaryText">
+              Nenhum atendimento foi registrado para hoje.
+            </p>
+
+            <div class="day-separator"></div>
+
+            <div class="day-stat">
+              <span>Atendimentos</span>
+              <strong id="dayTotalAppointments">0</strong>
+            </div>
+
+            <div class="day-stat">
+              <span>Concluídos</span>
+              <strong id="dayCompletedAppointments">0</strong>
+            </div>
+
+            <div class="day-stat">
+              <span>Receita do dia</span>
+              <strong id="dayRevenue">R$ 0,00</strong>
+            </div>
+
+            <div class="financial-periods">
+              <div class="day-stat">
+                <span>Receita da semana</span>
+                <strong id="weekRevenue">R$ 0,00</strong>
+              </div>
+
+              <div class="day-stat">
+                <span>Receita do mês</span>
+                <strong id="monthRevenue">R$ 0,00</strong>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="day-card">
+
+            <span class="section-eyebrow">
+              ATALHOS
+            </span>
+
+            <button class="quick-action" onclick="goToPage('servicos')">
+              <span>✂</span>
+              <div>
+                <strong>Gerenciar serviços</strong>
+                <small>Preços e duração</small>
+              </div>
+              <b>›</b>
+            </button>
+
+            <button class="quick-action" onclick="goToPage('clientes')">
+              <span>♟</span>
+              <div>
+                <strong>Ver clientes</strong>
+                <small>Histórico e contatos</small>
+              </div>
+              <b>›</b>
+            </button>
+
+          </div>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================================
+         SERVIÇOS
+    =========================================== -->
+
+    <section class="page" id="servicos">
+
+      <div class="page-intro">
+
+        <div>
+          <span class="section-eyebrow">CATÁLOGO</span>
+          <h2>Serviços</h2>
+          <p>
+            Controle os serviços oferecidos,
+            preços, duração e disponibilidade.
+          </p>
+        </div>
+
+        <button class="btn btn-primary" onclick="openServiceModal()">
+          <span>＋</span>
+          Novo serviço
+        </button>
+
+      </div>
+
+      <div class="services-overview">
+        <div>
+          <span>Serviços ativos</span>
+          <strong id="activeServicesCount">0</strong>
+        </div>
+        <div>
+          <span>Preço médio</span>
+          <strong id="averageServicePrice">R$ 0,00</strong>
+        </div>
+        <div>
+          <span>Mais agendado</span>
+          <strong>—</strong>
+        </div>
+      </div>
+
+      <div class="card">
+
+        <div class="table-header">
+          <div>
+            <h3>Seus serviços</h3>
+            <p>
+              Edite ou adicione serviços
+              oferecidos aos clientes.
+            </p>
+          </div>
+
+          <div class="search">
+            <span>⌕</span>
+            <input type="text" placeholder="Buscar serviço" id="serviceSearch">
+          </div>
+        </div>
+
+        <div id="serviceMessage" class="service-message hidden"></div>
+
+        <div class="service-table">
+          <div class="service-table-head">
+            <span>SERVIÇO</span>
+            <span>PREÇO</span>
+            <span>DURAÇÃO</span>
+            <span>STATUS</span>
+            <span></span>
+          </div>
+
+          <div id="servicesList"></div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- ==========================================
+         CLIENTES
+    =========================================== -->
+
+    <section
+      class="page"
+      id="clientes"
+    >
+
+      <div class="page-intro">
+
+        <div>
+
+          <span class="section-eyebrow">
+            RELACIONAMENTO
+          </span>
+
+          <h2>
+            Clientes
+          </h2>
+
+          <p>
+            Consulte clientes, contatos
+            e histórico de atendimentos.
+          </p>
+
+        </div>
+
+      </div>
+
+
+      <div class="summary-grid clients-summary">
+
+        <article class="summary-card">
+
+          <span class="summary-label">
+            TOTAL DE CLIENTES
+          </span>
+
+          <strong class="summary-number" id="clientsTotalCount">
+            0
+          </strong>
+
+          <span class="summary-description">
+            cadastrados
+          </span>
+
+        </article>
+
+
+        <article class="summary-card">
+
+          <span class="summary-label">
+            NOVOS ESTE MÊS
+          </span>
+
+          <strong class="summary-number" id="clientsNewMonthCount">
+            0
+          </strong>
+
+          <span class="summary-description">
+            novos clientes
+          </span>
+
+        </article>
+
+
+        <article class="summary-card">
+
+          <span class="summary-label">
+            RETORNOS
+          </span>
+
+          <strong class="summary-number" id="clientsReturnCount">
+            0
+          </strong>
+
+          <span class="summary-description">
+            clientes recorrentes
+          </span>
+
+        </article>
+
+      </div>
+
+
+      <div class="card">
+
+        <div class="table-header">
+
+          <div>
+            <h3>Lista de clientes</h3>
+
+            <p>
+              Contas cadastradas no site aparecem aqui,
+              mesmo antes do primeiro agendamento.
+            </p>
+          </div>
+
+
+          <div class="search">
+
+            <span>⌕</span>
+
+            <input
+              type="text"
+              placeholder="Nome ou telefone"
+              id="clientSearch"
+            >
+
+          </div>
+
+        </div>
+
+
+        <div id="clientsList">
+          <div class="large-empty">
+            <div class="empty-symbol">♟</div>
+            <h3>Carregando clientes...</h3>
+            <p>Buscando os cadastros e o histórico de atendimentos.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- PRODUTOS -->
+    <section class="page" id="produtos">
+      <div class="page-intro"><div><span class="section-eyebrow">CATÁLOGO</span><h2>Produtos</h2><p>Cadastre produtos, fotos, preços e controle o estoque.</p></div><button class="btn btn-primary" type="button" onclick="openNewProductModal()"><span>＋</span> Novo produto</button></div>
+      <div class="summary-grid clients-summary">
+        <article class="summary-card"><span class="summary-label">ATIVOS</span><strong class="summary-number" id="productsActiveCount">0</strong><span class="summary-description">produtos disponíveis</span></article>
+        <article class="summary-card"><span class="summary-label">ESTOQUE BAIXO</span><strong class="summary-number" id="productsLowCount">0</strong><span class="summary-description">precisam de atenção</span></article>
+        <article class="summary-card"><span class="summary-label">ESGOTADOS</span><strong class="summary-number" id="productsOutCount">0</strong><span class="summary-description">sem estoque</span></article>
+      </div>
+      <div class="card" style="padding:20px"><div class="product-toolbar"><div><h3 style="margin:0 0 5px">Catálogo da barbearia</h3><p style="margin:0;color:var(--muted);font-size:11px">Produtos desativados continuam no histórico, mas não aparecem para clientes.</p></div><div class="search"><span>⌕</span><input id="productSearch" type="text" placeholder="Buscar produto"></div></div><div id="productsList" class="product-grid"><div class="large-empty product-empty"><div class="empty-symbol">📦</div><h3>Carregando produtos...</h3></div></div></div>
+    </section>
+
+    <!-- RESERVAS DE PRODUTOS -->
+    <section class="page" id="reservas">
+      <div class="page-intro"><div><span class="section-eyebrow">PRODUTOS</span><h2>Reservas</h2><p>Acompanhe os produtos reservados pelos clientes cadastrados.</p></div></div>
+      <div class="summary-grid clients-summary">
+        <article class="summary-card"><span class="summary-label">AGUARDANDO</span><strong class="summary-number" id="reservationsOpenCount">0</strong><span class="summary-description">reservas ativas</span></article>
+        <article class="summary-card"><span class="summary-label">ENTREGUES</span><strong class="summary-number" id="reservationsDeliveredCount">0</strong><span class="summary-description">finalizadas</span></article>
+        <article class="summary-card"><span class="summary-label">CANCELADAS</span><strong class="summary-number" id="reservationsCancelledCount">0</strong><span class="summary-description">canceladas</span></article>
+      </div>
+      <div class="card" style="padding:20px"><div class="product-toolbar"><div><h3 style="margin:0 0 5px">Reservas de produtos</h3><p style="margin:0;color:var(--muted);font-size:11px">Ao cancelar, a quantidade reservada volta automaticamente ao estoque.</p></div><select id="reservationFilter" onchange="renderReservations()" style="height:40px;border:1px solid #ddd0c3;border-radius:10px;padding:0 10px"><option value="todos">Todos</option><option value="reservado">Aguardando</option><option value="entregue">Entregues</option><option value="cancelado">Canceladas</option></select></div><div id="reservationsList" class="reservation-list"><div class="large-empty"><div class="empty-symbol">🛍</div><h3>Carregando reservas...</h3></div></div></div>
+    </section>
+
+    <!-- ==========================================
+         CONFIGURAÇÕES
+    =========================================== -->
+
+
+<section class="page" id="financeiro">
+ <div class="page-intro"><div><span class="section-eyebrow">GESTÃO FINANCEIRA</span><h2>Seu financeiro, sob controle.</h2><p>Agendamentos concluídos + lançamentos manuais, sem perder o histórico.</p></div><button class="btn btn-primary" onclick="openFinanceModal()">＋ Novo lançamento</button></div>
+ <div class="finance-toolbar"><label>Mês <input id="financeMonth" type="month" onchange="loadFinance()"></label><button class="btn btn-secondary" onclick="loadFinance()">↻ Atualizar</button></div>
+ <div id="financeError" class="service-message hidden" role="alert"></div>
+ <div class="finance-hero"><span>RESULTADO DO PERÍODO</span><strong id="financeNet">R$ 0,00</strong><small>Receitas menos despesas registradas</small></div>
+ <div class="finance-stats"><div><span>Receita automática</span><strong id="financeAuto">R$ 0,00</strong></div><div><span>Receita manual</span><strong id="financeManual">R$ 0,00</strong></div><div><span>Despesas</span><strong id="financeExpenses">R$ 0,00</strong></div><div><span>Receita total</span><strong id="financeGross">R$ 0,00</strong></div></div>
+ <div class="card finance-list-card"><div class="finance-list-head"><div><h3>Movimentações</h3><p>Os lançamentos automáticos são gerados pelos atendimentos concluídos.</p></div><select id="financeTypeFilter" onchange="renderFinance()"><option value="todos">Todos</option><option value="automatico">Automáticos</option><option value="receita">Receitas manuais</option><option value="despesa">Despesas</option></select></div><div id="financeList" class="finance-list"><div class="finance-empty">Selecione um mês para consultar.</div></div></div>
+</section>
+
+    <section class="page" id="configuracoes">
+      <div class="page-intro">
+        <div>
+          <span class="section-eyebrow">PREFERÊNCIAS</span>
+          <h2>Configurações</h2>
+          <p>Configure os dados e o funcionamento da barbearia.</p>
+        </div>
+      </div>
+
+      <div class="settings-layout">
+        <div class="settings-menu">
+          <button class="settings-item active" data-settings="dados" onclick="openSettingsTab('dados')">
+            <span>▣</span><div><strong>Dados da barbearia</strong><small>Informações gerais</small></div>
+          </button>
+          <button class="settings-item" data-settings="horarios" onclick="openSettingsTab('horarios')">
+            <span>◷</span><div><strong>Horários</strong><small>Dias e funcionamento</small></div>
+          </button>
+          <button class="settings-item" data-settings="profissionais" onclick="openSettingsTab('profissionais')">
+            <span>♟</span><div><strong>Profissionais</strong><small>Equipe e agenda</small></div>
+          </button>
+        </div>
+
+        <div class="card settings-card settings-panel" id="settingsDados">
+          <div class="settings-title"><h3>Dados da barbearia</h3><p>Informações utilizadas no sistema e no agendamento.</p></div>
+          <div id="businessDataMessage" class="schedule-message hidden"></div>
+          <div class="settings-form">
+            <div class="field full"><label>Nome da barbearia</label><input id="businessName" type="text" value="Pretão do Corte"></div>
+            <div class="field"><label>Responsável</label><input id="businessResponsible" type="text" value="Kaique Vital"></div>
+            <div class="field"><label>WhatsApp</label><input id="businessWhatsapp" type="text" value="(16) 99363-3521"></div>
+            <div class="field full"><label>Endereço</label><input id="businessAddress" type="text" value="R. Jorn. Cândido Mota Filho, 554 - Ribeirão Preto - SP"></div>
+          </div>
+          <div class="settings-footer"><span>Esses dados ficam salvos no sistema.</span><button id="saveBusinessDataButton" class="btn btn-primary" type="button" onclick="saveBusinessData()">Salvar alterações</button></div>
+        </div>
+
+        <div class="card settings-card settings-panel hidden" id="settingsHorarios">
+          <div class="settings-title">
+            <h3>Dias e horários de funcionamento</h3>
+            <p>Ative somente os dias em que Kaique atende e informe o horário de abertura e encerramento.</p>
+          </div>
+          <div id="scheduleMessage" class="schedule-message hidden"></div>
+          <div class="hours-list" id="hoursList">
+            <div class="hours-row" data-day="1"><div class="hours-day"><strong>Segunda-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="2"><div class="hours-day"><strong>Terça-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="3"><div class="hours-day"><strong>Quarta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="4"><div class="hours-day"><strong>Quinta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="5"><div class="hours-day"><strong>Sexta-feira</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="6"><div class="hours-day"><strong>Sábado</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+            <div class="hours-row" data-day="0"><div class="hours-day"><strong>Domingo</strong><span class="day-status">Fechado</span></div><label class="hours-switch"><input type="checkbox" class="day-enabled"><span></span></label><div class="hours-times"><input type="time" class="start-time" disabled><span>até</span><input type="time" class="end-time" disabled></div></div>
+          </div>
+          <div class="settings-footer"><span>Esses horários serão usados para montar a agenda disponível aos clientes.</span><button id="saveHoursButton" class="btn btn-primary" type="button" onclick="saveBusinessHours()">Salvar horários</button></div>
+        </div>
+
+        <div class="card settings-card settings-panel hidden" id="settingsProfissionais">
+          <div class="settings-title"><h3>Profissionais</h3><p>Essa área será conectada na próxima etapa.</p></div>
+          <div class="large-empty"><div class="empty-symbol">♟</div><h3>Kaique Vital</h3><p>O profissional já está cadastrado. Depois adicionaremos aqui a edição da equipe e agenda individual.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</div>
+
+
+
+
+<div class="modal-overlay" id="financeModal"><div class="modal small-modal"><div class="modal-top"><div><span class="section-eyebrow">FINANCEIRO</span><h2 id="financeModalTitle">Novo lançamento</h2></div><button class="modal-close" onclick="closeFinanceModal()" aria-label="Fechar">×</button></div><form id="financeForm"><div class="modal-body finance-form"><label>Tipo<select id="financeEntryType" required><option value="receita">Receita</option><option value="despesa">Despesa</option></select></label><label>Descrição<input id="financeDescription" maxlength="120" placeholder="Ex.: Corte sem agendamento" required></label><div class="finance-form-pair"><label>Valor (R$)<input id="financeAmount" type="number" min="0.01" step="0.01" inputmode="decimal" required></label><label>Data<input id="financeDate" type="date" required></label></div><label>Forma de pagamento<select id="financePayment"><option value="nao_informado">Não informado</option><option value="pix">Pix</option><option value="dinheiro">Dinheiro</option><option value="debito">Débito</option><option value="credito">Crédito</option><option value="outro">Outro</option></select></label><label>Observações (opcional)<textarea id="financeNotes" maxlength="500" rows="2"></textarea></label><p class="finance-hint">Não lance novamente valores que já estão contabilizados em agendamentos concluídos.</p><div id="financeFormError" class="service-message hidden" role="alert"></div></div><div class="modal-footer"><button class="btn btn-secondary" type="button" onclick="closeFinanceModal()">Cancelar</button><button class="btn btn-primary" id="financeSaveButton" type="submit">Salvar lançamento</button></div></form></div></div>
+
+<!-- MODAL DE PRODUTO -->
+<div class="modal-overlay" id="productModal"><div class="modal"><div class="modal-top"><div><span class="section-eyebrow">PRODUTOS</span><h2 id="productModalTitle">Novo produto</h2></div><button class="modal-close" type="button" onclick="closeProductModal()">×</button></div><div id="productMessage" class="service-message hidden"></div><div class="product-form-grid">
+  <div class="full"><label>Foto do produto</label><input id="productImageFile" type="file" accept="image/*"><img id="productImagePreview" class="product-preview" alt="Prévia"></div>
+  <div><label>Nome *</label><input id="productName" type="text" placeholder="Ex.: Pomada modeladora"></div><div><label>Categoria</label><input id="productCategory" type="text" placeholder="Ex.: Cabelo"></div>
+  <div><label>Código</label><input id="productCode" type="text" placeholder="Opcional"></div><div><label>Preço (R$) *</label><input id="productPrice" type="number" min="0" step="0.01" placeholder="0,00"></div>
+  <div><label>Estoque *</label><input id="productStock" type="number" min="0" step="1" value="0"></div><div><label>Estoque mínimo</label><input id="productMinStock" type="number" min="0" step="1" value="2"></div>
+  <div class="full"><label>Descrição</label><textarea id="productDescription" placeholder="Descrição curta do produto"></textarea></div>
+  <div><label><input id="productFeatured" type="checkbox" style="width:auto"> Produto em destaque</label></div><div><label><input id="productActive" type="checkbox" style="width:auto" checked> Produto ativo</label></div>
+</div><div class="modal-actions"><button class="btn btn-secondary" type="button" onclick="closeProductModal()">Cancelar</button><button id="saveProductButton" class="btn btn-primary" type="button" onclick="saveProduct()">Salvar produto</button></div></div></div>
+
+<!-- ==========================================
+     MODAL DE SERVIÇO
+=========================================== -->
+
+<div
+  class="modal-overlay"
+  id="serviceModal"
+>
+
+  <div class="modal">
+
+    <div class="modal-top">
+
+      <div>
+
+        <span class="section-eyebrow">
+          SERVIÇOS
+        </span>
+
+        <h2 id="serviceModalTitle">
+          Novo serviço
+        </h2>
+
+      </div>
+
+
+      <button
+        class="modal-close"
+        onclick="closeServiceModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <div class="field full">
+
+        <label>
+          Nome do serviço
+        </label>
+
+        <input
+          id="serviceName"
+          type="text"
+          placeholder="Ex.: Corte masculino"
+        >
+
+      </div>
+
+
+      <div class="form-two">
+
+        <div class="field">
+
+          <label>
+            Preço
+          </label>
+
+          <div class="money-input">
+
+            <span>R$</span>
+
+            <input
+              id="servicePrice"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0,00"
+            >
+
+          </div>
+
+        </div>
+
+
+        <div class="field">
+
+          <label>
+            Duração
+          </label>
+
+          <select id="serviceDuration">
+
+            <option value="">
+              Selecione
+            </option>
+
+            <option value="20">
+              20 minutos
+            </option>
+
+            <option value="30">
+              30 minutos
+            </option>
+
+            <option value="40">
+              40 minutos
+            </option>
+
+            <option value="45">
+              45 minutos
+            </option>
+
+            <option value="60">
+              1 hora
+            </option>
+
+            <option value="90">
+              1h30
+            </option>
+
+            <option value="120">
+              2 horas
+            </option>
+
+          </select>
+
+        </div>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          Descrição
+          <small>opcional</small>
+        </label>
+
+        <textarea
+          id="serviceDescription"
+          placeholder="Ex.: Corte masculino com acabamento..."
+        ></textarea>
+
+      </div>
+
+
+      <label class="toggle-row">
+
+        <div>
+
+          <strong>
+            Serviço ativo
+          </strong>
+
+          <span>
+            Disponível para novos agendamentos
+          </span>
+
+        </div>
+
+
+        <input
+          id="serviceActive"
+          type="checkbox"
+          checked
+        >
+
+      </label>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button
+        class="btn btn-secondary"
+        onclick="closeServiceModal()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        class="btn btn-primary"
+        id="saveServiceButton"
+        onclick="saveService()"
+      >
+        Salvar serviço
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ==========================================
+     MODAL HORÁRIO EXTRA
+=========================================== -->
+
+<div
+  class="modal-overlay"
+  id="extraHoursModal"
+>
+
+  <div class="modal small-modal">
+
+    <div class="modal-top">
+
+      <div>
+
+        <span class="section-eyebrow">
+          AGENDA
+        </span>
+
+        <h2>
+          Adicionar horário
+        </h2>
+
+      </div>
+
+      <button
+        class="modal-close"
+        onclick="closeExtraHoursModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <p style="margin:0 0 20px;color:#786a61;line-height:1.55;font-size:14px;">
+        Abra um período extra somente nesta data. Os horários serão divididos automaticamente conforme a duração do serviço.
+      </p>
+
+      <div class="field full">
+
+        <label>
+          Data
+        </label>
+
+        <input id="extraHoursDate" type="date">
+
+      </div>
+
+      <div class="form-two">
+
+        <div class="field">
+
+          <label>
+            Início
+          </label>
+
+          <input id="extraHoursStart" type="time">
+
+        </div>
+
+        <div class="field">
+
+          <label>
+            Final
+          </label>
+
+          <input id="extraHoursEnd" type="time">
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <div id="extraHoursMessage" class="schedule-message hidden"></div>
+
+    <div class="modal-footer">
+
+      <button
+        class="btn btn-secondary"
+        onclick="closeExtraHoursModal()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        class="btn btn-primary"
+        id="saveExtraHoursButton"
+        onclick="saveExtraHours()"
+      >
+        Adicionar horário
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- ==========================================
+     MODAL BLOQUEIO
+=========================================== -->
+
+<div
+  class="modal-overlay"
+  id="blockModal"
+>
+
+  <div class="modal small-modal">
+
+    <div class="modal-top">
+
+      <div>
+
+        <span class="section-eyebrow">
+          AGENDA
+        </span>
+
+        <h2>
+          Bloquear horário
+        </h2>
+
+      </div>
+
+      <button
+        class="modal-close"
+        onclick="closeBlockModal()"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <div class="field full">
+
+        <label>
+          Data
+        </label>
+
+        <input id="blockDate" type="date">
+
+      </div>
+
+
+      <div class="form-two">
+
+        <div class="field">
+
+          <label>
+            Início
+          </label>
+
+          <input id="blockStart" type="time">
+
+        </div>
+
+
+        <div class="field">
+
+          <label>
+            Final
+          </label>
+
+          <input id="blockEnd" type="time">
+
+        </div>
+
+      </div>
+
+
+      <div class="field full">
+
+        <label>
+          Motivo
+          <small>opcional</small>
+        </label>
+
+        <input
+          type="text"
+          id="blockReason" placeholder="Ex.: Almoço, compromisso..."
+        >
+
+      </div>
+
+    </div>
+
+
+    <div id="blockMessage" class="schedule-message hidden"></div>
+
+    <div class="modal-footer">
+
+      <button
+        class="btn btn-secondary"
+        onclick="closeBlockModal()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        class="btn btn-primary"
+        id="saveBlockButton" onclick="saveBlock()"
+      >
+        Bloquear
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
 /* ==========================================
-   PRETÃO DO CORTE
-   PAINEL ADMINISTRATIVO V2
+   AUTENTICAÇÃO SUPABASE
 =========================================== */
+const SUPABASE_URL = "https://tmvcedpvrxredaqwoqhy.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_95lMhyKPnUNREKLnUlMqmw_LheZOinx";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-:root {
+const loadingScreen = document.getElementById("loadingScreen");
+const loginScreen = document.getElementById("loginScreen");
+const adminApp = document.getElementById("adminApp");
+const loginForm = document.getElementById("loginForm");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginError = document.getElementById("loginError");
+const loginButton = document.getElementById("loginButton");
 
-  --black: #121212;
-  --black-soft: #1a1a1a;
-  --black-light: #242424;
-
-  --brown: #4b3020;
-  --brown-soft: #76523b;
-
-  --gold: #c49a68;
-  --gold-light: #e3c69f;
-
-  --cream: #f0e3d2;
-  --cream-soft: #faf7f2;
-
-  --bg: #f5f5f3;
-  --card: #ffffff;
-
-  --text: #1c1c1c;
-  --muted: #7d7d78;
-
-  --border: #e8e6e1;
-
-  --green: #2c8057;
-  --green-bg: #eaf6ef;
-
-  --radius: 16px;
-
-  --shadow:
-    0 12px 35px
-    rgba(20, 18, 15, .055);
-
+function showLogin(message = "") {
+  loadingScreen.classList.add("hidden");
+  adminApp.classList.add("hidden");
+  loginScreen.classList.remove("hidden");
+  loginError.textContent = message;
+  loginError.classList.toggle("show", Boolean(message));
 }
 
+function showAdmin(name) {
+  loadingScreen.classList.add("hidden");
+  loginScreen.classList.add("hidden");
+  adminApp.classList.remove("hidden");
+  const safeName = name || "Administrador";
+  document.getElementById("sidebarAdminName").textContent = safeName;
+  const firstName = safeName.trim().split(/\s+/)[0];
+  document.getElementById("welcomeTitle").textContent = `Olá, ${firstName}.`;
+  loadAgenda();
+}
+
+async function validateAdministrator(user) {
+  const { data, error } = await db.from("admins").select("nome").eq("user_id", user.id).maybeSingle();
+  if (error) throw error;
+  if (!data) {
+    await db.auth.signOut();
+    showLogin("Este usuário não possui acesso administrativo.");
+    return false;
+  }
+  showAdmin(data.nome);
+  return true;
+}
+
+async function initializeAdmin() {
+  try {
+    const { data: { session }, error } = await db.auth.getSession();
+    if (error) throw error;
+    if (!session) return showLogin();
+    await validateAdministrator(session.user);
+  } catch (error) {
+    console.error(error);
+    await db.auth.signOut();
+    showLogin("Não foi possível validar o acesso. Tente novamente.");
+  }
+}
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.classList.remove("show");
+  loginButton.disabled = true;
+  loginButton.textContent = "Entrando...";
+  try {
+    const { data, error } = await db.auth.signInWithPassword({
+      email: loginEmail.value.trim(),
+      password: loginPassword.value
+    });
+    if (error) throw error;
+    await validateAdministrator(data.user);
+  } catch (error) {
+    console.error(error);
+    await db.auth.signOut();
+    showLogin("E-mail ou senha incorretos.");
+  } finally {
+    loginButton.disabled = false;
+    loginButton.textContent = "Entrar no painel";
+  }
+});
+
+document.getElementById("togglePassword").addEventListener("click", () => {
+  const visible = loginPassword.type === "text";
+  loginPassword.type = visible ? "password" : "text";
+  document.getElementById("togglePassword").textContent = visible ? "Ver" : "Ocultar";
+});
+
+async function logoutAdmin() {
+  await db.auth.signOut();
+  loginPassword.value = "";
+  showLogin();
+}
+
+document.getElementById("logoutButton").addEventListener("click", logoutAdmin);
+document.getElementById("mobileLogoutButton").addEventListener("click", logoutAdmin);
+
+db.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") showLogin();
+});
 
 /* ==========================================
-   RESET
+   CONFIGURAÇÕES - DADOS DA BARBEARIA
 =========================================== */
+let businessDataLoaded = false;
+let businessConfigId = null;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+function setBusinessDataMessage(message = "", type = "info") {
+  const box = document.getElementById("businessDataMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
 }
 
-
-html {
-  scroll-behavior: smooth;
+function formatBusinessWhatsapp(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  return value || "";
 }
 
+async function loadBusinessData() {
+  setBusinessDataMessage("Carregando dados...", "info");
+  try {
+    const { data, error } = await db
+      .from("configuracoes")
+      .select("id,nome_barbearia,responsavel,whatsapp,endereco")
+      .order("id")
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Configuração da barbearia não encontrada.");
 
-body {
-
-  min-height: 100vh;
-
-  font-family:
-    Inter,
-    Arial,
-    Helvetica,
-    sans-serif;
-
-  background:
-    var(--bg);
-
-  color:
-    var(--text);
-
-  -webkit-font-smoothing:
-    antialiased;
-
+    businessConfigId = data.id;
+    document.getElementById("businessName").value = data.nome_barbearia || "";
+    document.getElementById("businessResponsible").value = data.responsavel || "";
+    document.getElementById("businessWhatsapp").value = formatBusinessWhatsapp(data.whatsapp);
+    document.getElementById("businessAddress").value = data.endereco || "";
+    businessDataLoaded = true;
+    setBusinessDataMessage("");
+  } catch (error) {
+    console.error(error);
+    setBusinessDataMessage("Não foi possível carregar os dados da barbearia.", "error");
+  }
 }
 
+async function saveBusinessData() {
+  const button = document.getElementById("saveBusinessDataButton");
+  const nome = document.getElementById("businessName").value.trim();
+  const responsavel = document.getElementById("businessResponsible").value.trim();
+  const whatsapp = document.getElementById("businessWhatsapp").value.replace(/\D/g, "");
+  const endereco = document.getElementById("businessAddress").value.trim();
 
-body.modal-open {
-  overflow: hidden;
+  if (!nome) return setBusinessDataMessage("Informe o nome da barbearia.", "error");
+  if (!responsavel) return setBusinessDataMessage("Informe o responsável.", "error");
+  if (whatsapp && whatsapp.length !== 11) return setBusinessDataMessage("Informe um WhatsApp válido com DDD.", "error");
+  if (!endereco) return setBusinessDataMessage("Informe o endereço.", "error");
+
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  setBusinessDataMessage("Salvando alterações...", "info");
+  try {
+    const payload = {
+      nome_barbearia: nome,
+      responsavel,
+      whatsapp,
+      endereco,
+      updated_at: new Date().toISOString()
+    };
+
+    let error;
+    if (businessConfigId) {
+      ({ error } = await db.from("configuracoes").update(payload).eq("id", businessConfigId));
+    } else {
+      const result = await db.from("configuracoes").insert(payload).select("id").single();
+      error = result.error;
+      if (result.data) businessConfigId = result.data.id;
+    }
+    if (error) throw error;
+
+    document.getElementById("businessWhatsapp").value = formatBusinessWhatsapp(whatsapp);
+    const sidebarBrand = document.querySelector(".brand-name strong");
+    if (sidebarBrand) sidebarBrand.textContent = nome;
+    businessDataLoaded = true;
+    setBusinessDataMessage("Alterações salvas com sucesso.", "success");
+  } catch (error) {
+    console.error(error);
+    setBusinessDataMessage("Não foi possível salvar as alterações. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar alterações";
+  }
 }
-
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-
-button {
-  cursor: pointer;
-}
-
-
-input,
-select,
-textarea {
-  outline: none;
-}
-
 
 /* ==========================================
-   APP
+   CONFIGURAÇÕES - HORÁRIOS
 =========================================== */
+let currentProfessionalId = null;
+let hoursLoaded = false;
 
-.app {
-  min-height: 100vh;
+function openSettingsTab(tab) {
+  document.querySelectorAll(".settings-item[data-settings]").forEach(button => {
+    button.classList.toggle("active", button.dataset.settings === tab);
+  });
+  document.querySelectorAll(".settings-panel").forEach(panel => panel.classList.add("hidden"));
+  const panels = { dados: "settingsDados", horarios: "settingsHorarios", profissionais: "settingsProfissionais" };
+  document.getElementById(panels[tab]).classList.remove("hidden");
+  if (tab === "horarios" && !hoursLoaded) loadBusinessHours();
 }
 
+function setScheduleMessage(message = "", type = "info") {
+  const box = document.getElementById("scheduleMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
+
+function updateDayRow(row) {
+  const enabled = row.querySelector(".day-enabled").checked;
+  row.querySelector(".start-time").disabled = !enabled;
+  row.querySelector(".end-time").disabled = !enabled;
+  row.querySelector(".day-status").textContent = enabled ? "Aberto" : "Fechado";
+}
+
+document.querySelectorAll(".hours-row").forEach(row => {
+  row.querySelector(".day-enabled").addEventListener("change", () => updateDayRow(row));
+});
+
+async function getProfessionalId() {
+  if (currentProfessionalId) return currentProfessionalId;
+  const { data, error } = await db.from("profissionais").select("id,nome").eq("ativo", true).order("id").limit(1).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Nenhum profissional ativo foi encontrado.");
+  currentProfessionalId = data.id;
+  return currentProfessionalId;
+}
+
+async function loadBusinessHours() {
+  setScheduleMessage("Carregando horários...", "info");
+  try {
+    const professionalId = await getProfessionalId();
+    const { data, error } = await db.from("horarios_funcionamento").select("dia_semana,hora_inicio,hora_fim,ativo").eq("profissional_id", professionalId).order("dia_semana");
+    if (error) throw error;
+    document.querySelectorAll(".hours-row").forEach(row => {
+      const found = (data || []).find(item => Number(item.dia_semana) === Number(row.dataset.day) && item.ativo);
+      const checkbox = row.querySelector(".day-enabled");
+      checkbox.checked = Boolean(found);
+      row.querySelector(".start-time").value = found ? String(found.hora_inicio).slice(0,5) : "";
+      row.querySelector(".end-time").value = found ? String(found.hora_fim).slice(0,5) : "";
+      updateDayRow(row);
+    });
+    hoursLoaded = true;
+    setScheduleMessage(data && data.length ? "Horários carregados do sistema." : "Nenhum horário cadastrado ainda. Ative os dias de atendimento e informe os horários.", "info");
+  } catch (error) {
+    console.error(error);
+    setScheduleMessage("Não foi possível carregar os horários.", "error");
+  }
+}
+
+async function saveBusinessHours() {
+  const button = document.getElementById("saveHoursButton");
+  const rows = [...document.querySelectorAll(".hours-row")];
+  const payload = [];
+  for (const row of rows) {
+    if (!row.querySelector(".day-enabled").checked) continue;
+    const start = row.querySelector(".start-time").value;
+    const end = row.querySelector(".end-time").value;
+    if (!start || !end) return setScheduleMessage(`Preencha o início e o fim de ${row.querySelector("strong").textContent}.`, "error");
+    if (end <= start) return setScheduleMessage(`O horário final de ${row.querySelector("strong").textContent} precisa ser depois do horário inicial.`, "error");
+    payload.push({ dia_semana: Number(row.dataset.day), hora_inicio: start, hora_fim: end, ativo: true });
+  }
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  setScheduleMessage("Salvando horários...", "info");
+  try {
+    const professionalId = await getProfessionalId();
+    const { error: deleteError } = await db.from("horarios_funcionamento").delete().eq("profissional_id", professionalId);
+    if (deleteError) throw deleteError;
+    if (payload.length) {
+      const { error: insertError } = await db.from("horarios_funcionamento").insert(payload.map(item => ({ ...item, profissional_id: professionalId })));
+      if (insertError) throw insertError;
+    }
+    hoursLoaded = true;
+    setScheduleMessage("Horários salvos com sucesso.", "success");
+  } catch (error) {
+    console.error(error);
+    setScheduleMessage("Não foi possível salvar os horários. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar horários";
+  }
+}
 
 /* ==========================================
-   SIDEBAR
+   SERVIÇOS - SUPABASE
 =========================================== */
+let servicesCache = [];
+let editingServiceId = null;
+let servicesLoaded = false;
 
-.sidebar {
-
-  position: fixed;
-
-  top: 0;
-  bottom: 0;
-  left: 0;
-
-  z-index: 100;
-
-  width: 245px;
-
-  display: flex;
-  flex-direction: column;
-
-  padding:
-    24px 15px 18px;
-
-  background:
-    var(--black);
-
-  color:
-    white;
-
+function setServiceMessage(message = "", type = "info") {
+  const box = document.getElementById("serviceMessage");
+  box.textContent = message;
+  box.className = message ? `service-message ${type}` : "service-message hidden";
 }
 
-
-.sidebar-brand {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-  padding:
-    0 7px 23px;
-
-  border-bottom:
-    1px solid
-    rgba(255,255,255,.08);
-
+function moneyBR(value) {
+  if (value === null || value === undefined || value === "") return "A definir";
+  return Number(value).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-
-.brand-logo {
-
-  width: 46px;
-  height: 46px;
-
-  flex-shrink: 0;
-
-  overflow: hidden;
-
-  border-radius:
-    10px;
-
-  background:
-    var(--cream);
-
+function durationLabel(value) {
+  if (!value) return "A definir";
+  const n = Number(value);
+  if (n === 60) return "1 hora";
+  if (n === 90) return "1h30";
+  if (n === 120) return "2 horas";
+  return `${n} min`;
 }
 
-
-.brand-logo img {
-
-  width: 100%;
-  height: 100%;
-
-  object-fit: cover;
-
-}
-
-
-.brand-name {
-
-  display: flex;
-  flex-direction: column;
-
-}
-
-
-.brand-name strong {
-
-  font-size: 13px;
-
-  letter-spacing:
-    -.1px;
-
-}
-
-
-.brand-name span {
-
-  margin-top: 2px;
-
-  color:
-    #7d7d7d;
-
-  font-size: 9px;
-
-}
-
-
-/* MENU */
-
-.sidebar-section {
-
-  margin-top: 25px;
-
-}
-
-
-.sidebar-label {
-
-  display: block;
-
-  padding:
-    0 12px 8px;
-
-  color:
-    #5e5e5e;
-
-  font-size: 8px;
-
-  font-weight: 900;
-
-  letter-spacing:
-    1.5px;
-
-}
-
-
-.sidebar-nav {
-
-  display: grid;
-
-  gap: 4px;
-
-}
-
-
-.nav-item {
-
-  width: 100%;
-
-  min-height: 44px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 11px;
-
-  padding:
-    0 12px;
-
-  border: 0;
-
-  border-radius:
-    9px;
-
-  background:
-    transparent;
-
-  color:
-    #999;
-
-  text-align: left;
-
-  font-size: 12px;
-
-  font-weight: 700;
-
-  transition:
-    background .18s,
-    color .18s;
-
-}
-
-
-.nav-item:hover {
-
-  background:
-    rgba(255,255,255,.055);
-
-  color:
-    white;
-
-}
-
-
-.nav-item.active {
-
-  background:
-    #29241f;
-
-  color:
-    var(--gold-light);
-
-}
-
-
-.nav-icon {
-
-  width: 20px;
-
-  display: grid;
-
-  place-items: center;
-
-  font-size: 15px;
-
-}
-
-
-/* PERFIL */
-
-.sidebar-profile {
-
-  margin-top: auto;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  padding:
-    14px 8px;
-
-  border-top:
-    1px solid
-    rgba(255,255,255,.08);
-
-}
-
-
-.profile-avatar,
-.topbar-user {
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius: 50%;
-
-  background:
-    var(--brown);
-
-  color:
-    white;
-
-  font-weight: 900;
-
-}
-
-
-.profile-avatar {
-
-  width: 36px;
-  height: 36px;
-
-  flex-shrink: 0;
-
-  font-size: 12px;
-
-}
-
-
-.profile-data {
-
-  min-width: 0;
-
-  display: flex;
-  flex: 1;
-
-  flex-direction: column;
-
-}
-
-
-.profile-data strong {
-
-  overflow: hidden;
-
-  font-size: 11px;
-
-  white-space: nowrap;
-
-  text-overflow:
-    ellipsis;
-
-}
-
-
-.profile-data span {
-
-  margin-top: 2px;
-
-  color:
-    #777;
-
-  font-size: 8px;
-
-}
-
-
-.profile-more {
-
-  border: 0;
-
-  background:
-    transparent;
-
-  color:
-    #777;
-
-  font-size: 17px;
-
-}
-
-
-.developer {
-
-  padding:
-    8px 8px 0;
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.developer span {
-
-  color:
-    #4f4f4f;
-
-  font-size: 7px;
-
-  text-transform:
-    uppercase;
-
-  letter-spacing:
-    1px;
-
-}
-
-
-.developer strong {
-
-  margin-top: 2px;
-
-  color:
-    #8d7256;
-
-  font-size: 8px;
-
-}
-
-
-/* ==========================================
-   MAIN
-=========================================== */
-
-.main {
-
-  min-height: 100vh;
-
-  margin-left:
-    245px;
-
-}
-
-
-/* ==========================================
-   TOPBAR
-=========================================== */
-
-.topbar {
-
-  position: sticky;
-
-  top: 0;
-
-  z-index: 80;
-
-  min-height: 78px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 25px;
-
-  padding:
-    0 34px;
-
-  background:
-    rgba(
-      245,
-      245,
-      243,
-      .94
-    );
-
-  backdrop-filter:
-    blur(15px);
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-}
-
-
-.topbar-title span {
-
-  display: block;
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-  font-weight: 900;
-
-  letter-spacing:
-    1.5px;
-
-}
-
-
-.topbar-title h1 {
-
-  margin-top: 2px;
-
-  font-size: 20px;
-
-  letter-spacing:
-    -.5px;
-
-}
-
-
-.topbar-actions {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 12px;
-
-}
-
-
-.system-status {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 6px;
-
-  padding:
-    7px 10px;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    100px;
-
-  background:
-    white;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-  font-weight: 700;
-
-}
-
-
-.system-status span {
-
-  width: 6px;
-  height: 6px;
-
-  border-radius:
-    50%;
-
-  background:
-    var(--green);
-
-}
-
-
-.notification-button {
-
-  width: 35px;
-  height: 35px;
-
-  display: grid;
-
-  place-items: center;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    50%;
-
-  background:
-    white;
-
-  color:
-    var(--text);
-
-}
-
-
-.topbar-user {
-
-  width: 35px;
-  height: 35px;
-
-  font-size: 11px;
-
-}
-
-
-.mobile-brand {
-  display: none;
-}
-
-
-/* ==========================================
-   PÁGINAS
-=========================================== */
-
-.page {
-
-  display: none;
-
-  padding:
-    38px 34px 70px;
-
-}
-
-
-.page.active {
-
-  display: block;
-
-  animation:
-    pageIn .2s ease;
-
-}
-
-
-@keyframes pageIn {
-
-  from {
-    opacity: 0;
-    transform:
-      translateY(4px);
+function renderServices(filter = "") {
+  const list = document.getElementById("servicesList");
+  const term = filter.trim().toLowerCase();
+  const filtered = servicesCache.filter(item =>
+    item.nome.toLowerCase().includes(term) || (item.descricao || "").toLowerCase().includes(term)
+  );
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="service-empty-real"><strong>${term ? "Nenhum serviço encontrado" : "Nenhum serviço cadastrado"}</strong><span>${term ? "Tente outra busca." : "Clique em Novo serviço para começar."}</span></div>`;
+  } else {
+    list.innerHTML = filtered.map(item => `
+      <div class="service-item">
+        <div class="service-name">
+          <div class="service-avatar">✂</div>
+          <div><strong>${escapeHtml(item.nome)}</strong><span>${escapeHtml(item.descricao || "Sem descrição")}</span></div>
+        </div>
+        <strong>${moneyBR(item.preco)}</strong>
+        <span class="${item.duracao_minutos ? "" : "not-defined"}">${durationLabel(item.duracao_minutos)}</span>
+        <span class="status ${item.ativo ? "active-status" : "inactive-status"}"><i></i>${item.ativo ? "Ativo" : "Inativo"}</span>
+        <button class="more-button" type="button" onclick="editService(${item.id})" title="Editar serviço">•••</button>
+      </div>`).join("");
   }
 
-  to {
-    opacity: 1;
-    transform:
-      translateY(0);
+  const active = servicesCache.filter(item => item.ativo).length;
+  const prices = servicesCache.map(item => item.preco).filter(value => value !== null && value !== undefined).map(Number);
+  const avg = prices.length ? prices.reduce((a,b) => a+b, 0) / prices.length : 0;
+  document.getElementById("activeServicesCount").textContent = active;
+  document.getElementById("averageServicePrice").textContent = moneyBR(avg);
+}
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
+}
+
+async function loadServices() {
+  setServiceMessage("Carregando serviços...", "info");
+  const { data, error } = await db.from("servicos").select("id,nome,descricao,preco,duracao_minutos,ativo,created_at").order("id");
+  if (error) {
+    console.error(error);
+    setServiceMessage("Não foi possível carregar os serviços.", "error");
+    return;
+  }
+  servicesCache = data || [];
+  servicesLoaded = true;
+  setServiceMessage("");
+  renderServices(document.getElementById("serviceSearch").value);
+}
+
+function openServiceModal() {
+  editingServiceId = null;
+  document.getElementById("serviceModalTitle").textContent = "Novo serviço";
+  document.getElementById("serviceName").value = "";
+  document.getElementById("servicePrice").value = "";
+  document.getElementById("serviceDuration").value = "";
+  document.getElementById("serviceDescription").value = "";
+  document.getElementById("serviceActive").checked = false;
+  openModal("serviceModal");
+}
+
+function closeServiceModal() {
+  closeModal("serviceModal");
+}
+
+function editService(id) {
+  const item = servicesCache.find(service => Number(service.id) === Number(id));
+  if (!item) return;
+  editingServiceId = item.id;
+  document.getElementById("serviceModalTitle").textContent = "Editar serviço";
+  document.getElementById("serviceName").value = item.nome || "";
+  document.getElementById("servicePrice").value = item.preco ?? "";
+  document.getElementById("serviceDuration").value = item.duracao_minutos ?? "";
+  document.getElementById("serviceDescription").value = item.descricao || "";
+  document.getElementById("serviceActive").checked = Boolean(item.ativo);
+  openModal("serviceModal");
+}
+
+async function saveService() {
+  const name = document.getElementById("serviceName").value.trim();
+  const priceRaw = document.getElementById("servicePrice").value;
+  const durationRaw = document.getElementById("serviceDuration").value;
+  const description = document.getElementById("serviceDescription").value.trim();
+  const active = document.getElementById("serviceActive").checked;
+  const button = document.getElementById("saveServiceButton");
+
+  if (!name) return alert("Informe o nome do serviço.");
+  if (active && (!priceRaw || !durationRaw)) return alert("Para ativar o serviço, informe o preço e a duração.");
+
+  const payload = {
+    nome: name,
+    descricao: description,
+    preco: priceRaw === "" ? null : Number(priceRaw),
+    duracao_minutos: durationRaw === "" ? null : Number(durationRaw),
+    ativo: active
+  };
+
+  button.disabled = true;
+  button.textContent = "Salvando...";
+  try {
+    let error;
+    if (editingServiceId) {
+      ({ error } = await db.from("servicos").update(payload).eq("id", editingServiceId));
+    } else {
+      ({ error } = await db.from("servicos").insert(payload));
+    }
+    if (error) throw error;
+    closeServiceModal();
+    await loadServices();
+    setServiceMessage(editingServiceId ? "Serviço atualizado com sucesso." : "Serviço cadastrado com sucesso.", "success");
+    editingServiceId = null;
+  } catch (error) {
+    console.error(error);
+    alert("Não foi possível salvar o serviço. Tente novamente.");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Salvar serviço";
+  }
+}
+
+document.getElementById("serviceSearch").addEventListener("input", event => renderServices(event.target.value));
+
+/* ==========================================
+   CLIENTES - SUPABASE
+=========================================== */
+let clientsCache = [];
+let clientsLoaded = false;
+
+function formatPhoneBR(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`;
+  return value || "Sem telefone";
+}
+
+function formatDateBR(value) {
+  if (!value) return "—";
+  const [y,m,d] = String(value).slice(0,10).split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "—";
+}
+
+function renderClients(filter = "") {
+  const list = document.getElementById("clientsList");
+  const rawTerm = filter.trim().toLowerCase();
+  const digitTerm = rawTerm.replace(/\D/g, "");
+  const filtered = clientsCache.filter(item => {
+    const nameMatch = String(item.nome || "").toLowerCase().includes(rawTerm);
+    const phoneMatch = digitTerm
+      ? String(item.contato || "").replace(/\D/g, "").includes(digitTerm)
+      : false;
+    return !rawTerm || nameMatch || phoneMatch;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `<div class="large-empty"><div class="empty-symbol">♟</div><h3>${rawTerm ? "Nenhum cliente encontrado" : "Nenhum cliente ainda"}</h3><p>${rawTerm ? "Tente buscar por outro nome ou telefone." : "Os clientes cadastrados aparecerão aqui."}</p></div>`;
+    return;
   }
 
+  list.innerHTML = `<div class="clients-list-real">${filtered.map(item => `
+    <div class="client-row-real">
+      <div><strong>${escapeHtml(item.nome || "Cliente")}</strong><span>Cliente #${item.id}</span></div>
+      <div><strong>${escapeHtml(formatPhoneBR(item.contato))}</strong><span>Contato</span></div>
+      <div><strong class="client-count-real">${item.atendimentos}</strong><span>atendimento${item.atendimentos === 1 ? "" : "s"}</span></div>
+      <div><strong class="client-last-real">${item.ultimoAtendimento ? formatDateBR(item.ultimoAtendimento) : "—"}</strong><span>último atendimento</span></div>
+    </div>`).join("")}</div>`;
 }
+
+async function loadClients() {
+  const list = document.getElementById("clientsList");
+  list.innerHTML = `<div class="large-empty"><div class="empty-symbol">♟</div><h3>Carregando clientes...</h3><p>Buscando os cadastros e o histórico.</p></div>`;
+  try {
+    const [{ data: clients, error: clientsError }, { data: appointments, error: appointmentsError }] = await Promise.all([
+      db.from("clientes").select("id,nome,telefone,whatsapp,created_at").order("nome", { ascending: true }),
+      db.from("agendamentos").select("cliente_id,cliente_telefone,data,status")
+    ]);
+    if (clientsError) throw clientsError;
+    if (appointmentsError) throw appointmentsError;
+
+    const allAppointments = (appointments || []).filter(a => String(a.status || "").toLowerCase() !== "cancelado");
+    clientsCache = (clients || []).map(client => {
+      const contato = client.whatsapp || client.telefone || "";
+      const phone = String(contato).replace(/\D/g, "");
+      const history = allAppointments.filter(a =>
+        (a.cliente_id && Number(a.cliente_id) === Number(client.id)) ||
+        (!a.cliente_id && phone && String(a.cliente_telefone || "").replace(/\D/g, "") === phone)
+      );
+      const dates = history.map(a => a.data).filter(Boolean).sort();
+      return { ...client, contato, atendimentos: history.length, ultimoAtendimento: dates.at(-1) || null };
+    });
+
+    const now = new Date();
+    const monthPrefix = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+    document.getElementById("clientsTotalCount").textContent = clientsCache.length;
+    document.getElementById("clientsNewMonthCount").textContent = clientsCache.filter(c => String(c.created_at || "").startsWith(monthPrefix)).length;
+    document.getElementById("clientsReturnCount").textContent = clientsCache.filter(c => c.atendimentos >= 2).length;
+    clientsLoaded = true;
+    renderClients(document.getElementById("clientSearch").value);
+  } catch (error) {
+    console.error(error);
+    list.innerHTML = `<div class="large-empty"><div class="empty-symbol">!</div><h3>Não foi possível carregar os clientes</h3><p>Verifique a conexão e tente novamente.</p></div>`;
+  }
+}
+
+document.getElementById("clientSearch").addEventListener("input", event => renderClients(event.target.value));
 
 
 /* ==========================================
-   CABEÇALHOS
+   PRODUTOS E RESERVAS
+=========================================== */
+let productsLoaded = false;
+let productsCache = [];
+let editingProductId = null;
+let currentProductImageUrl = null;
+let reservationsLoaded = false;
+let reservationsCache = [];
+
+function setProductMessage(message = "", type = "info") {
+  const box = document.getElementById("productMessage");
+  if (!box) return;
+  box.textContent = message;
+  box.className = message ? `service-message ${type}` : "service-message hidden";
+}
+function productStockClass(item){
+  const stock=Number(item.estoque||0), min=Number(item.estoque_minimo||0);
+  if(stock<=0) return ["out","Esgotado"];
+  if(stock<=min) return ["low","Estoque baixo"];
+  return ["ok",`${stock} em estoque`];
+}
+async function loadProducts(){
+  const list=document.getElementById("productsList"); if(!list) return;
+  list.innerHTML='<div class="large-empty product-empty"><div class="empty-symbol">📦</div><h3>Carregando produtos...</h3></div>';
+  try{
+    const {data,error}=await db.from("produtos").select("id,nome,descricao,preco,estoque,imagem_url,ativo,categoria,destaque,estoque_minimo,codigo,created_at").order("created_at",{ascending:false});
+    if(error) throw error; productsCache=data||[]; productsLoaded=true; renderProducts();
+  }catch(error){console.error(error);list.innerHTML='<div class="large-empty product-empty"><div class="empty-symbol">!</div><h3>Não foi possível carregar os produtos</h3><p>Verifique as permissões e tente novamente.</p></div>';}
+}
+function renderProducts(){
+  const list=document.getElementById("productsList"); if(!list) return;
+  const term=(document.getElementById("productSearch")?.value||"").trim().toLowerCase();
+  const filtered=productsCache.filter(p=>`${p.nome||""} ${p.categoria||""} ${p.codigo||""}`.toLowerCase().includes(term));
+  document.getElementById("productsActiveCount").textContent=productsCache.filter(p=>p.ativo).length;
+  document.getElementById("productsLowCount").textContent=productsCache.filter(p=>p.ativo&&Number(p.estoque)>0&&Number(p.estoque)<=Number(p.estoque_minimo||0)).length;
+  document.getElementById("productsOutCount").textContent=productsCache.filter(p=>p.ativo&&Number(p.estoque)<=0).length;
+  if(!filtered.length){list.innerHTML='<div class="large-empty product-empty"><div class="empty-symbol">📦</div><h3>Nenhum produto encontrado</h3><p>Cadastre o primeiro produto da barbearia.</p></div>';return;}
+  list.innerHTML=filtered.map(p=>{const [cls,label]=productStockClass(p);return `<article class="product-card"><div class="product-photo">${p.imagem_url?`<img src="${escapeHtml(p.imagem_url)}" alt="${escapeHtml(p.nome||'Produto')}">`:'<span>📦</span>'}</div><div class="product-body"><div class="product-meta">${escapeHtml(p.categoria||'Outros')}${p.codigo?` · ${escapeHtml(p.codigo)}`:''}</div><h3>${escapeHtml(p.nome||'Produto')}</h3><div class="product-description">${escapeHtml(p.descricao||'Sem descrição.')}</div><div class="product-price">${moneyBR(p.preco)}</div><div class="product-stock"><span class="product-badge ${cls}">${escapeHtml(label)}</span>${p.destaque?'<span class="product-badge">★ Destaque</span>':''}${!p.ativo?'<span class="product-badge out">Desativado</span>':''}</div><div class="product-actions"><button class="agenda-action-btn" onclick="openEditProductModal(${Number(p.id)})">✏ Editar</button><button class="agenda-action-btn" onclick="adjustProductStock(${Number(p.id)})">📦 Estoque</button><button class="agenda-action-btn ${p.ativo?'danger':'success'}" onclick="toggleProductActive(${Number(p.id)},${p.ativo?'false':'true'})">${p.ativo?'🙈 Desativar':'✓ Ativar'}</button><button class="agenda-action-btn danger" onclick="deleteProduct(${Number(p.id)})">🗑 Excluir</button></div></div></article>`}).join("");
+}
+function resetProductForm(){editingProductId=null;currentProductImageUrl=null;document.getElementById("productName").value="";document.getElementById("productCategory").value="";document.getElementById("productCode").value="";document.getElementById("productPrice").value="";document.getElementById("productStock").value="0";document.getElementById("productMinStock").value="2";document.getElementById("productDescription").value="";document.getElementById("productFeatured").checked=false;document.getElementById("productActive").checked=true;document.getElementById("productImageFile").value="";const preview=document.getElementById("productImagePreview");preview.src="";preview.style.display="none";setProductMessage("");}
+function openNewProductModal(){resetProductForm();document.getElementById("productModalTitle").textContent="Novo produto";openModal("productModal");}
+function openEditProductModal(id){const p=productsCache.find(x=>Number(x.id)===Number(id));if(!p)return;resetProductForm();editingProductId=p.id;currentProductImageUrl=p.imagem_url||null;document.getElementById("productModalTitle").textContent="Editar produto";document.getElementById("productName").value=p.nome||"";document.getElementById("productCategory").value=p.categoria||"";document.getElementById("productCode").value=p.codigo||"";document.getElementById("productPrice").value=p.preco??"";document.getElementById("productStock").value=p.estoque??0;document.getElementById("productMinStock").value=p.estoque_minimo??2;document.getElementById("productDescription").value=p.descricao||"";document.getElementById("productFeatured").checked=!!p.destaque;document.getElementById("productActive").checked=!!p.ativo;if(p.imagem_url){const preview=document.getElementById("productImagePreview");preview.src=p.imagem_url;preview.style.display="block";}openModal("productModal");}
+function closeProductModal(){closeModal("productModal");}
+document.getElementById("productImageFile")?.addEventListener("change",e=>{const file=e.target.files?.[0];if(!file)return;const preview=document.getElementById("productImagePreview");preview.src=URL.createObjectURL(file);preview.style.display="block";});
+document.getElementById("productSearch")?.addEventListener("input",renderProducts);
+async function uploadProductImage(file){if(!file)return currentProductImageUrl;const ext=(file.name.split('.').pop()||'jpg').replace(/[^a-z0-9]/gi,'').toLowerCase();const path=`catalogo/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;const {error}=await db.storage.from("produtos").upload(path,file,{cacheControl:"3600",upsert:false});if(error)throw error;return db.storage.from("produtos").getPublicUrl(path).data.publicUrl;}
+async function saveProduct(){const button=document.getElementById("saveProductButton");const nome=document.getElementById("productName").value.trim();const preco=Number(document.getElementById("productPrice").value);const estoque=Number(document.getElementById("productStock").value);const minimo=Number(document.getElementById("productMinStock").value);if(!nome)return setProductMessage("Informe o nome do produto.","error");if(!Number.isFinite(preco)||preco<0)return setProductMessage("Informe um preço válido.","error");if(!Number.isInteger(estoque)||estoque<0)return setProductMessage("Informe um estoque válido.","error");if(!Number.isInteger(minimo)||minimo<0)return setProductMessage("Informe um estoque mínimo válido.","error");button.disabled=true;button.textContent="Salvando...";try{const imagem_url=await uploadProductImage(document.getElementById("productImageFile").files?.[0]);const payload={nome,descricao:document.getElementById("productDescription").value.trim(),preco,estoque,imagem_url:imagem_url||null,ativo:document.getElementById("productActive").checked,categoria:document.getElementById("productCategory").value.trim()||"Outros",destaque:document.getElementById("productFeatured").checked,estoque_minimo:minimo,codigo:document.getElementById("productCode").value.trim()||null,updated_at:new Date().toISOString()};const q=editingProductId?db.from("produtos").update(payload).eq("id",editingProductId):db.from("produtos").insert(payload);const {error}=await q;if(error)throw error;closeProductModal();await loadProducts();alert(editingProductId?"Produto atualizado com sucesso.":"Produto cadastrado com sucesso.");}catch(error){console.error(error);setProductMessage(error.message||"Não foi possível salvar o produto.","error");}finally{button.disabled=false;button.textContent="Salvar produto";}}
+async function toggleProductActive(id,active){if(!confirm(active?"Deseja ativar este produto?":"Deseja desativar este produto? Ele deixará de aparecer para os clientes."))return;const {error}=await db.from("produtos").update({ativo:active,updated_at:new Date().toISOString()}).eq("id",id);if(error)return alert("Não foi possível alterar o produto.");await loadProducts();}
+async function adjustProductStock(id){const p=productsCache.find(x=>Number(x.id)===Number(id));if(!p)return;const value=prompt(`Estoque atual de ${p.nome}: ${p.estoque}
+Digite a NOVA quantidade em estoque:`,String(p.estoque));if(value===null)return;const stock=Number(value);if(!Number.isInteger(stock)||stock<0)return alert("Digite uma quantidade inteira igual ou maior que zero.");const {error}=await db.from("produtos").update({estoque:stock,updated_at:new Date().toISOString()}).eq("id",id);if(error)return alert("Não foi possível atualizar o estoque.");await loadProducts();}
+
+async function deleteProduct(id){
+  const p=productsCache.find(x=>Number(x.id)===Number(id));
+  if(!p)return;
+
+  const confirmed=confirm(`Excluir "${p.nome}" definitivamente?
+
+Se este produto já tiver reservas no histórico, ele não poderá ser excluído. Nesse caso, use Desativar.`);
+  if(!confirmed)return;
+
+  try{
+    const {count,error:historyError}=await db
+      .from("reservas_produtos")
+      .select("id",{count:"exact",head:true})
+      .eq("produto_id",id);
+
+    if(historyError)throw historyError;
+
+    if(Number(count||0)>0){
+      alert("Este produto já possui reserva no histórico e não pode ser excluído. Use Desativar para retirá-lo da vitrine.");
+      return;
+    }
+
+    const {error}=await db.from("produtos").delete().eq("id",id);
+    if(error)throw error;
+
+    await loadProducts();
+    alert("Produto excluído com sucesso.");
+  }catch(error){
+    console.error(error);
+    alert("Não foi possível excluir o produto. Se ele já possui histórico, use Desativar.");
+  }
+}
+
+async function loadReservations(){const list=document.getElementById("reservationsList");if(!list)return;list.innerHTML='<div class="large-empty"><div class="empty-symbol">🛍</div><h3>Carregando reservas...</h3></div>';try{const {data,error}=await db.from("reservas_produtos").select("id,produto_id,cliente_id,cliente_nome,cliente_telefone,quantidade,status,created_at,produtos(nome,imagem_url,preco)").order("created_at",{ascending:false});if(error)throw error;reservationsCache=data||[];reservationsLoaded=true;renderReservations();}catch(error){console.error(error);list.innerHTML='<div class="large-empty"><div class="empty-symbol">!</div><h3>Não foi possível carregar as reservas</h3></div>';}}
+function renderReservations(){const list=document.getElementById("reservationsList");if(!list)return;document.getElementById("reservationsOpenCount").textContent=reservationsCache.filter(r=>r.status==='reservado').length;document.getElementById("reservationsDeliveredCount").textContent=reservationsCache.filter(r=>r.status==='entregue').length;document.getElementById("reservationsCancelledCount").textContent=reservationsCache.filter(r=>r.status==='cancelado').length;const filter=document.getElementById("reservationFilter")?.value||"todos";const rows=reservationsCache.filter(r=>filter==='todos'||r.status===filter);if(!rows.length){list.innerHTML='<div class="large-empty"><div class="empty-symbol">🛍</div><h3>Nenhuma reserva encontrada</h3><p>As reservas dos clientes aparecerão aqui.</p></div>';return;}list.innerHTML=rows.map(r=>{const phone=String(r.cliente_telefone||'').replace(/\D/g,'');const msg=encodeURIComponent(`Olá, ${r.cliente_nome}! Sobre sua reserva de ${r.quantidade}x ${r.produtos?.nome||'produto'} no Pretão do Corte:`);return `<div class="reservation-row"><div><strong>${escapeHtml(r.produtos?.nome||'Produto')}</strong><span>${r.quantidade} unidade(s) · ${moneyBR(Number(r.produtos?.preco||0)*Number(r.quantidade||0))}</span></div><div><strong>${escapeHtml(r.cliente_nome||'Cliente')}</strong><span>${escapeHtml(phoneBR(r.cliente_telefone))}</span><span class="registered-tag">👤 Cliente cadastrado</span></div><div><strong>${new Date(r.created_at).toLocaleDateString('pt-BR')}</strong><span>Reserva</span></div><div><span class="agenda-status-real ${escapeHtml(r.status)}">${r.status==='reservado'?'Aguardando':r.status==='entregue'?'Entregue':'Cancelada'}</span></div><div class="reservation-actions"><button class="agenda-action-btn" onclick="window.open('https://wa.me/55${phone}?text=${msg}','_blank')">📱 WhatsApp</button>${r.status==='reservado'?`<button class="agenda-action-btn success" onclick="deliverReservation(${Number(r.id)},this)">✓ Entregue</button><button class="agenda-action-btn danger" onclick="cancelReservation(${Number(r.id)},this)">Cancelar</button>`:''}</div></div>`}).join('');}
+async function deliverReservation(id,button){if(!confirm("Confirmar que este produto foi entregue ao cliente?"))return;if(button)button.disabled=true;try{const {error}=await db.rpc("entregar_reserva_produto",{p_reserva_id:id});if(error)throw error;await loadReservations();}catch(error){console.error(error);alert("Não foi possível concluir a reserva.");if(button)button.disabled=false;}}
+async function cancelReservation(id,button){if(!confirm("Cancelar esta reserva? A quantidade reservada voltará para o estoque."))return;if(button)button.disabled=true;try{const {error}=await db.rpc("cancelar_reserva_produto",{p_reserva_id:id});if(error)throw error;await Promise.all([loadReservations(),loadProducts()]);}catch(error){console.error(error);alert("Não foi possível cancelar a reserva.");if(button)button.disabled=false;}}
+
+/* ==========================================
+   NAVEGAÇÃO
 =========================================== */
 
-.welcome-row,
-.page-intro {
+const navItems =
+  document.querySelectorAll(".nav-item");
 
-  display: flex;
+const pages =
+  document.querySelectorAll(".page");
 
-  align-items:
-    flex-end;
+const pageTitle =
+  document.getElementById("pageTitle");
 
-  justify-content:
-    space-between;
-
-  gap: 30px;
-
-  margin-bottom:
-    28px;
-
-}
+const breadcrumb =
+  document.getElementById("breadcrumb");
 
 
-.section-eyebrow {
+const pageNames = {
 
-  color:
-    var(--brown-soft);
+  agenda: {
+    title: "Agenda",
+    breadcrumb: "VISÃO GERAL"
+  },
 
-  font-size: 8px;
+  servicos: {
+    title: "Serviços",
+    breadcrumb: "GERENCIAMENTO"
+  },
 
-  font-weight: 900;
+  clientes: {
+    title: "Clientes",
+    breadcrumb: "RELACIONAMENTO"
+  },
 
-  letter-spacing:
-    1.5px;
+  produtos: {
+    title: "Produtos",
+    breadcrumb: "CATÁLOGO"
+  },
 
-}
+  reservas: {
+    title: "Reservas",
+    breadcrumb: "PRODUTOS"
+  },
+
+  financeiro: { title: "Financeiro", breadcrumb: "GESTÃO" },
+
+  configuracoes: {
+    title: "Configurações",
+    breadcrumb: "SISTEMA"
+  }
+
+};
 
 
-.section-eyebrow.gold {
+navItems.forEach(item => {
 
-  color:
-    var(--gold);
+  item.addEventListener(
+    "click",
+    () => {
 
-}
+      goToPage(
+        item.dataset.page
+      );
+
+    }
+  );
+
+});
 
 
-.welcome-row h2,
-.page-intro h2 {
+function goToPage(page) {
 
-  margin-top: 6px;
+  pages.forEach(item => {
 
-  font-size:
-    clamp(
-      27px,
-      4vw,
-      37px
+    item.classList.remove(
+      "active"
     );
 
-  line-height: 1;
-
-  letter-spacing:
-    -1.5px;
-
-}
+  });
 
 
-.welcome-row p,
-.page-intro p {
+  navItems.forEach(item => {
 
-  margin-top: 8px;
+    item.classList.remove(
+      "active"
+    );
 
-  color:
-    var(--muted);
-
-  font-size: 11px;
-
-}
+  });
 
 
-.welcome-actions {
-
-  display: flex;
-
-  gap: 8px;
-
-}
+  document
+    .getElementById(page)
+    .classList.add("active");
 
 
-/* ==========================================
-   BOTÕES
-=========================================== */
-
-.btn {
-
-  min-height: 42px;
-
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 7px;
-
-  padding:
-    0 15px;
-
-  border:
-    1px solid
-    transparent;
-
-  border-radius:
-    9px;
-
-  font-size: 10px;
-
-  font-weight: 800;
-
-  transition:
-    .18s;
-
-}
+  document
+    .querySelector(
+      `.nav-item[data-page="${page}"]`
+    )
+    ?.classList.add("active");
 
 
-.btn:hover {
-
-  transform:
-    translateY(-1px);
-
-}
+  pageTitle.textContent =
+    pageNames[page].title;
 
 
-.btn-primary {
-
-  background:
-    var(--black);
-
-  color:
-    white;
-
-}
+  breadcrumb.textContent =
+    pageNames[page].breadcrumb;
 
 
-.btn-primary:hover {
+  if (page === "servicos" && !servicesLoaded) loadServices();
+  if (page === "clientes" && !clientsLoaded) loadClients();
+  if (page === "produtos" && !productsLoaded) loadProducts();
+  if (page === "reservas" && !reservationsLoaded) loadReservations();
+  if (page === "configuracoes" && !businessDataLoaded) loadBusinessData();
+  if (page === "agenda") loadAgenda();
+  if (page === "financeiro") loadFinance();
 
-  background:
-    var(--brown);
-
-}
-
-
-.btn-secondary {
-
-  background:
-    white;
-
-  border-color:
-    var(--border);
-
-  color:
-    var(--text);
-
-}
-
-
-.btn-secondary:hover {
-
-  border-color:
-    #cbc7c0;
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 
 }
 
 
 /* ==========================================
-   RESUMO
+   DATA
 =========================================== */
 
-.summary-grid {
+const now = new Date();
 
-  display: grid;
+const formattedDate =
+  now.toLocaleDateString(
+    "pt-BR",
+    {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }
+  );
 
-  grid-template-columns:
-    repeat(4, 1fr);
+document.getElementById(
+  "todayDate"
+).textContent =
+  formattedDate.charAt(0).toUpperCase()
+  + formattedDate.slice(1);
 
-  gap: 12px;
 
-  margin-bottom:
-    18px;
+/* ==========================================
+   AGENDA - SUPABASE
+=========================================== */
 
+let agendaDate = new Date();
+
+function localISODate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function phoneBR(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length === 11) return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+  return value || "Sem telefone";
+}
+
+function statusLabel(status) {
+  const labels = {
+    confirmado: "Confirmado",
+    concluido: "Concluído",
+    cancelado: "Cancelado",
+    faltou: "Faltou"
+  };
+  return labels[String(status || "").toLowerCase()] || status || "—";
+}
+
+function setAgendaDateHeader() {
+  const today = localISODate(new Date());
+  const selected = localISODate(agendaDate);
+  const label = document.getElementById("agendaDayLabel");
+  label.textContent = selected === today ? "HOJE" : "AGENDA";
+
+  document.getElementById("agendaDateTitle").textContent =
+    agendaDate.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long"
+    }).replace(/^./, c => c.toUpperCase());
+}
+
+function changeAgendaDay(amount) {
+  agendaDate.setDate(agendaDate.getDate() + amount);
+  loadAgenda();
+}
+
+function goAgendaToday() {
+  agendaDate = new Date();
+  loadAgenda();
+}
+
+async function loadAgenda() {
+  const list = document.getElementById("agendaList");
+  if (!list) return;
+
+  setAgendaDateHeader();
+  list.innerHTML = `
+    <div class="schedule-empty">
+      <div class="empty-symbol">◷</div>
+      <h3>Carregando agenda...</h3>
+      <p>Buscando os agendamentos e bloqueios no sistema.</p>
+    </div>`;
+
+  const dateISO = localISODate(agendaDate);
+
+  try {
+    const professionalId = await getProfessionalId();
+
+    const weekStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), agendaDate.getDate());
+    const dayOfWeek = weekStart.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    weekStart.setDate(weekStart.getDate() + distanceToMonday);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    const monthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
+    const monthEnd = new Date(agendaDate.getFullYear(), agendaDate.getMonth() + 1, 0);
+
+    const rangeStart = localISODate(monthStart < weekStart ? monthStart : weekStart);
+    const rangeEnd = localISODate(monthEnd > weekEnd ? monthEnd : weekEnd);
+
+    const dayStartISO = `${dateISO}T00:00:00-03:00`;
+    const nextDay = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), agendaDate.getDate() + 1);
+    const nextDayISO = `${localISODate(nextDay)}T00:00:00-03:00`;
+
+    const { data: availabilityService, error: availabilityServiceError } = await db
+      .from("servicos")
+      .select("id,nome,duracao_minutos")
+      .eq("ativo", true)
+      .not("duracao_minutos", "is", null)
+      .order("id", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (availabilityServiceError) throw availabilityServiceError;
+
+    const availabilityPromise = availabilityService
+      ? db.rpc("horarios_disponiveis", {
+          p_servico_id: availabilityService.id,
+          p_data: dateISO
+        })
+      : Promise.resolve({ data: [], error: null });
+
+    const [appointmentsResult, blocksResult, revenueResult, availabilityResult] = await Promise.all([
+      db
+        .from("agendamentos")
+        .select("id,cliente_id,cliente_nome,cliente_telefone,data,hora_inicio,hora_fim,status,servico_id,servicos(nome,preco)")
+        .eq("profissional_id", professionalId)
+        .eq("data", dateISO)
+        .order("hora_inicio", { ascending: true }),
+
+      db
+        .from("bloqueios")
+        .select("id,inicio,fim,motivo")
+        .eq("profissional_id", professionalId)
+        .gte("inicio", dayStartISO)
+        .lt("inicio", nextDayISO)
+        .order("inicio", { ascending: true }),
+
+      db
+        .from("agendamentos")
+        .select("data,status,servicos(preco)")
+        .eq("profissional_id", professionalId)
+        .eq("status", "concluido")
+        .gte("data", rangeStart)
+        .lte("data", rangeEnd),
+
+      availabilityPromise
+    ]);
+
+    if (appointmentsResult.error) throw appointmentsResult.error;
+    if (blocksResult.error) throw blocksResult.error;
+    if (revenueResult.error) throw revenueResult.error;
+    if (availabilityResult.error) throw availabilityResult.error;
+
+    const appointments = appointmentsResult.data || [];
+    const blocks = blocksResult.data || [];
+    const revenueAppointments = revenueResult.data || [];
+    const freeSlots = (availabilityResult.data || [])
+      .map(item => String(item.horario || "").slice(0, 5))
+      .filter(Boolean);
+
+    const freeSlotsCount = document.getElementById("freeSlotsCount");
+    const freeSlotsDescription = document.getElementById("freeSlotsDescription");
+
+    if (freeSlotsCount) freeSlotsCount.textContent = freeSlots.length;
+    if (freeSlotsDescription) {
+      if (!availabilityService) {
+        freeSlotsDescription.textContent = "nenhum serviço ativo para calcular";
+      } else if (!freeSlots.length) {
+        freeSlotsDescription.textContent = "nenhum horário disponível neste dia";
+      } else {
+        const preview = freeSlots.slice(0, 5).join(" · ");
+        const remaining = freeSlots.length - 5;
+        freeSlotsDescription.textContent = remaining > 0
+          ? `${preview} · +${remaining}`
+          : preview;
+      }
+    }
+
+    const activeAppointments = appointments.filter(item => String(item.status).toLowerCase() !== "cancelado");
+    const completed = appointments.filter(item => String(item.status).toLowerCase() === "concluido");
+    const forecastAppointments = appointments.filter(item => {
+      const status = String(item.status || "").toLowerCase();
+      return status === "confirmado" || status === "concluido";
+    });
+
+    const forecast = forecastAppointments.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+    const revenue = completed.reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    const weekStartISO = localISODate(weekStart);
+    const weekEndISO = localISODate(weekEnd);
+    const monthStartISO = localISODate(monthStart);
+    const monthEndISO = localISODate(monthEnd);
+
+    const weekRevenue = revenueAppointments
+      .filter(item => item.data >= weekStartISO && item.data <= weekEndISO)
+      .reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    const monthRevenue = revenueAppointments
+      .filter(item => item.data >= monthStartISO && item.data <= monthEndISO)
+      .reduce((sum, item) => sum + Number(item.servicos?.preco || 0), 0);
+
+    document.getElementById("todayAppointmentsCount").textContent = activeAppointments.length;
+    document.getElementById("todayRevenueForecast").textContent = moneyBR(forecast);
+    document.getElementById("dayTotalAppointments").textContent = activeAppointments.length;
+    document.getElementById("dayCompletedAppointments").textContent = completed.length;
+    document.getElementById("dayRevenue").textContent = moneyBR(revenue);
+    document.getElementById("weekRevenue").textContent = moneyBR(weekRevenue);
+    document.getElementById("monthRevenue").textContent = moneyBR(monthRevenue);
+
+    const nowTime = new Date().toTimeString().slice(0,5);
+    const isToday = dateISO === localISODate(new Date());
+    const next = activeAppointments.find(item =>
+      String(item.status).toLowerCase() === "confirmado" &&
+      (!isToday || String(item.hora_inicio).slice(0,5) >= nowTime)
+    );
+
+    document.getElementById("nextClientTime").textContent =
+      next ? String(next.hora_inicio).slice(0,5) : "Livre";
+    document.getElementById("nextClientDescription").textContent =
+      next ? next.cliente_nome : "nenhum atendimento próximo";
+
+    const appointmentsHtml = appointments.length ? `
+      <div class="agenda-real-list">${appointments.map(item => `
+        <div class="agenda-item-real">
+          <div class="agenda-time-real">${escapeHtml(String(item.hora_inicio || "").slice(0,5))}</div>
+          <div class="agenda-client-real">
+            <strong>${escapeHtml(item.cliente_nome || "Cliente")}</strong>
+            <span>${escapeHtml(phoneBR(item.cliente_telefone))}</span>
+            <span class="${item.cliente_id ? 'registered-tag' : 'visitor-tag'}">${item.cliente_id ? '👤 Cliente cadastrado' : '🚶 Agendamento sem conta'}</span>
+          </div>
+          <div class="agenda-service-real">
+            <strong>${escapeHtml(item.servicos?.nome || "Serviço")}</strong>
+            <span>${moneyBR(item.servicos?.preco)}</span>
+          </div>
+          <span class="agenda-status-real ${escapeHtml(String(item.status || "").toLowerCase())}">
+            ${escapeHtml(statusLabel(item.status))}
+          </span>
+          <div class="agenda-actions-real">
+            ${String(item.status).toLowerCase() === "confirmado" ? `
+              <button class="agenda-action-btn success" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'concluido', this)">Concluir</button>
+              <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'faltou', this)">Faltou</button>
+              <button class="agenda-action-btn danger" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'cancelado', this)">Cancelar</button>
+            ` : `
+              <button class="agenda-action-btn" type="button" onclick="updateAppointmentStatus(${Number(item.id)}, 'confirmado', this)">Reabrir</button>
+            `}
+          </div>
+        </div>
+      `).join("")}</div>` : "";
+
+    const blocksHtml = blocks.length ? `
+      <div>
+        ${blocks.map(block => {
+          const start = new Date(block.inicio);
+          const finish = new Date(block.fim);
+          const startLabel = start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          const endLabel = finish.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+          return `
+            <div class="agenda-block-item">
+              <div class="agenda-block-time">${escapeHtml(startLabel)}</div>
+              <div class="agenda-block-data">
+                <strong>Horário bloqueado · ${escapeHtml(startLabel)} às ${escapeHtml(endLabel)}</strong>
+                <span>${escapeHtml(block.motivo || "Sem motivo informado")}</span>
+                <span class="agenda-block-tag">Bloqueado</span>
+              </div>
+              <div class="agenda-actions-real">
+                <button class="agenda-action-btn danger" type="button" onclick="unblockTime(${Number(block.id)}, this)">Desbloquear</button>
+              </div>
+            </div>`;
+        }).join("")}
+      </div>` : "";
+
+    if (!appointments.length && !blocks.length) {
+      list.innerHTML = `
+        <div class="schedule-empty">
+          <div class="empty-symbol">✂</div>
+          <h3>Sua agenda está livre</h3>
+          <p>Não há agendamentos ou bloqueios registrados para este dia.</p>
+          <button class="text-button" onclick="openExtraHoursModal()">+ Adicionar horário extra</button>
+        </div>`;
+      document.getElementById("daySummaryTitle").textContent = "Dia tranquilo por enquanto.";
+      document.getElementById("daySummaryText").textContent = "Nenhum atendimento foi registrado para este dia.";
+      return;
+    }
+
+    document.getElementById("daySummaryTitle").textContent =
+      activeAppointments.length === 1 ? "1 atendimento na agenda." : `${activeAppointments.length} atendimentos na agenda.`;
+
+    const summaryParts = [];
+    if (completed.length) summaryParts.push(`${completed.length} atendimento(s) concluído(s)`);
+    if (blocks.length) summaryParts.push(`${blocks.length} bloqueio(s) ativo(s)`);
+    document.getElementById("daySummaryText").textContent =
+      summaryParts.length ? `${summaryParts.join(" · ")}.` : "Os horários do dia estão organizados abaixo.";
+
+    list.innerHTML = appointmentsHtml + blocksHtml;
+
+  } catch (error) {
+    console.error("Erro ao carregar agenda:", error);
+    const freeSlotsCount = document.getElementById("freeSlotsCount");
+    const freeSlotsDescription = document.getElementById("freeSlotsDescription");
+    if (freeSlotsCount) freeSlotsCount.textContent = "—";
+    if (freeSlotsDescription) freeSlotsDescription.textContent = "não foi possível calcular";
+    list.innerHTML = `
+      <div class="schedule-empty">
+        <div class="empty-symbol">!</div>
+        <h3>Não foi possível carregar a agenda</h3>
+        <p>Atualize a página e tente novamente.</p>
+      </div>`;
+  }
+}
+
+async function updateAppointmentStatus(appointmentId, newStatus, button) {
+  const labels = {
+    concluido: "marcar este atendimento como concluído",
+    faltou: "marcar que o cliente faltou",
+    cancelado: "cancelar este agendamento",
+    confirmado: "reabrir este agendamento como confirmado"
+  };
+
+  if (!confirm(`Deseja ${labels[newStatus] || "alterar o status deste agendamento"}?`)) return;
+
+  const buttons = button?.closest(".agenda-actions-real")?.querySelectorAll("button") || [];
+  buttons.forEach(item => item.disabled = true);
+
+  try {
+    let error = null;
+    if (newStatus === "concluido") {
+      const result = await db.rpc("concluir_agendamento", { p_agendamento_id: appointmentId });
+      error = result.error;
+    } else {
+      const result = await db.from("agendamentos").update({ status: newStatus }).eq("id", appointmentId);
+      error = result.error;
+    }
+
+    if (error) throw error;
+
+    await loadAgenda();
+  } catch (error) {
+    console.error("Erro ao atualizar agendamento:", error);
+    alert("Não foi possível atualizar o agendamento. Tente novamente.");
+    buttons.forEach(item => item.disabled = false);
+  }
 }
 
 
-.summary-card {
 
-  min-height: 135px;
+async function unblockTime(blockId, button) {
+  if (!confirm("Deseja desbloquear este horário? Ele poderá voltar a aparecer como disponível no site.")) return;
 
-  padding: 18px;
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Removendo...";
+  }
 
-  display: flex;
+  try {
+    const { error } = await db
+      .from("bloqueios")
+      .delete()
+      .eq("id", blockId);
 
-  flex-direction: column;
+    if (error) throw error;
 
-  background:
-    var(--card);
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    var(--radius);
-
-  box-shadow:
-    var(--shadow);
-
-}
-
-
-.summary-card.highlight {
-
-  background:
-    #f4eadf;
-
-  border-color:
-    #ead7c2;
-
-}
-
-
-.summary-top {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 10px;
-
-}
-
-
-.summary-label {
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-  font-weight: 900;
-
-  letter-spacing:
-    1.2px;
-
-}
-
-
-.summary-icon {
-
-  min-width: 27px;
-  height: 27px;
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius:
-    8px;
-
-  background:
-    #f2f0ec;
-
-  color:
-    var(--brown);
-
-  font-size: 10px;
-
-  font-weight: 900;
-
-}
-
-
-.summary-number {
-
-  margin-top: auto;
-
-  font-size: 28px;
-
-  line-height: 1;
-
-  letter-spacing:
-    -1px;
-
-}
-
-
-.summary-number.small {
-
-  font-size: 21px;
-
-}
-
-
-.summary-description {
-
-  margin-top: 5px;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
+    await loadAgenda();
+  } catch (error) {
+    console.error("Erro ao desbloquear horário:", error);
+    alert("Não foi possível desbloquear o horário. Tente novamente.");
+    if (button) {
+      button.disabled = false;
+      button.textContent = "Desbloquear";
+    }
+  }
 }
 
 
 /* ==========================================
-   CARDS
+   HORÁRIOS EXTRAS
 =========================================== */
 
-.card {
+function setExtraHoursMessage(message = "", type = "info") {
+  const box = document.getElementById("extraHoursMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
 
-  background:
-    var(--card);
+function openExtraHoursModal() {
+  document.getElementById("extraHoursDate").value = localISODate(agendaDate);
+  document.getElementById("extraHoursStart").value = "";
+  document.getElementById("extraHoursEnd").value = "";
+  setExtraHoursMessage("");
+  openModal("extraHoursModal");
+}
 
-  border:
-    1px solid
-    var(--border);
+function closeExtraHoursModal() {
+  closeModal("extraHoursModal");
+}
 
-  border-radius:
-    var(--radius);
+async function saveExtraHours() {
+  const date = document.getElementById("extraHoursDate").value;
+  const start = document.getElementById("extraHoursStart").value;
+  const end = document.getElementById("extraHoursEnd").value;
+  const button = document.getElementById("saveExtraHoursButton");
 
-  box-shadow:
-    var(--shadow);
+  if (!date) return setExtraHoursMessage("Escolha a data.", "error");
+  if (!start || !end) return setExtraHoursMessage("Informe o horário inicial e final.", "error");
+  if (end <= start) return setExtraHoursMessage("O horário final precisa ser depois do horário inicial.", "error");
 
+  const today = localISODate(new Date());
+  if (date < today) return setExtraHoursMessage("Não é possível adicionar horário em uma data passada.", "error");
+
+  button.disabled = true;
+  button.textContent = "Adicionando...";
+  setExtraHoursMessage("Salvando horário extra...", "info");
+
+  try {
+    const professionalId = await getProfessionalId();
+
+    const { data: existing, error: existingError } = await db
+      .from("horarios_extras")
+      .select("id,hora_inicio,hora_fim")
+      .eq("profissional_id", professionalId)
+      .eq("data", date);
+
+    if (existingError) throw existingError;
+
+    const duplicate = (existing || []).some(item =>
+      String(item.hora_inicio || "").slice(0,5) === start &&
+      String(item.hora_fim || "").slice(0,5) === end
+    );
+
+    if (duplicate) {
+      return setExtraHoursMessage("Esse período extra já foi adicionado para esta data.", "error");
+    }
+
+    const { error } = await db.from("horarios_extras").insert({
+      profissional_id: professionalId,
+      data: date,
+      hora_inicio: start,
+      hora_fim: end
+    });
+
+    if (error) throw error;
+
+    closeExtraHoursModal();
+    await loadAgenda();
+    alert("Horário extra adicionado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao adicionar horário extra:", error);
+    setExtraHoursMessage("Não foi possível adicionar o horário. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Adicionar horário";
+  }
 }
 
 
 /* ==========================================
-   AGENDA
+   BLOQUEIO
 =========================================== */
 
-.content-grid {
-
-  display: grid;
-
-  grid-template-columns:
-    minmax(0, 1fr)
-    270px;
-
-  gap: 16px;
-
-}
-
-
-.schedule-card {
-
-  min-height: 480px;
-
-}
-
-
-.card-header {
-
-  min-height: 78px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 20px;
-
-  padding:
-    17px 20px;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-}
-
-
-.card-header h3 {
-
-  margin-top: 4px;
-
-  font-size: 16px;
-
-}
-
-
-.date-navigation {
-
-  display: flex;
-
-  gap: 4px;
-
-}
-
-
-.date-navigation button {
-
-  min-width: 31px;
-  height: 31px;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    7px;
-
-  background:
-    white;
-
-  font-size: 12px;
-
-}
-
-
-.date-navigation .today-button {
-
-  padding:
-    0 11px;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-  font-weight: 800;
-
-}
-
-
-.schedule-empty,
-.large-empty {
-
-  min-height: 395px;
-
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 35px;
-
-  text-align: center;
-
-}
-
-
-.empty-symbol {
-
-  width: 52px;
-  height: 52px;
-
-  display: grid;
-
-  place-items: center;
-
-  margin-bottom: 15px;
-
-  border-radius:
-    14px;
-
-  background:
-    var(--cream-soft);
-
-  color:
-    var(--brown);
-
-  font-size: 20px;
-
-}
-
-
-.schedule-empty h3,
-.large-empty h3 {
-
-  font-size: 16px;
-
-}
-
-
-.schedule-empty p,
-.large-empty p {
-
-  max-width: 320px;
-
-  margin-top: 7px;
-
-  color:
-    var(--muted);
-
-  font-size: 10px;
-
-  line-height: 1.6;
-
-}
-
-
-.text-button {
-
-  margin-top: 15px;
-
-  border: 0;
-
-  background:
-    transparent;
-
-  color:
-    var(--brown);
-
-  font-size: 9px;
-
-  font-weight: 900;
-
-}
-
-
-/* ==========================================
-   LATERAL AGENDA
-=========================================== */
-
-.day-panel {
-
-  display: grid;
-
-  align-content:
-    start;
-
-  gap: 12px;
-
-}
-
-
-.day-card {
-
-  padding: 20px;
-
-  background:
-    white;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    var(--radius);
-
-}
-
-
-.dark-card {
-
-  background:
-    var(--black);
-
-  border-color:
-    var(--black);
-
-  color:
-    white;
-
-}
-
-
-.dark-card h3 {
-
-  margin:
-    9px 0 7px;
-
-  font-size: 18px;
-
-  line-height: 1.15;
-
-  letter-spacing:
-    -.5px;
-
-}
-
-
-.dark-card > p {
-
-  color:
-    #777;
-
-  font-size: 9px;
-
-  line-height: 1.6;
-
-}
-
-
-.day-separator {
-
-  height: 1px;
-
-  margin:
-    18px 0 12px;
-
-  background:
-    #2b2b2b;
-
-}
-
-
-.day-stat {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  padding:
-    7px 0;
-
-}
-
-
-.day-stat span {
-
-  color:
-    #777;
-
-  font-size: 8px;
-
-}
-
-
-.day-stat strong {
-
-  font-size: 10px;
-
-}
-
-
-.quick-action {
-
-  width: 100%;
-
-  display: grid;
-
-  grid-template-columns:
-    30px 1fr auto;
-
-  align-items: center;
-
-  gap: 9px;
-
-  padding:
-    11px 0;
-
-  border: 0;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-  background:
-    transparent;
-
-  text-align: left;
-
-}
-
-
-.quick-action:last-child {
-
-  border-bottom: 0;
-
-}
-
-
-.quick-action > span {
-
-  width: 29px;
-  height: 29px;
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius:
-    8px;
-
-  background:
-    var(--cream-soft);
-
-  color:
-    var(--brown);
-
-}
-
-
-.quick-action div {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.quick-action strong {
-
-  font-size: 9px;
-
-}
-
-
-.quick-action small {
-
-  margin-top: 2px;
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-}
-
-
-.quick-action b {
-
-  color:
-    #aaa;
-
-}
-
-
-/* ==========================================
-   SERVIÇOS
-=========================================== */
-
-.services-overview {
-
-  display: flex;
-
-  gap: 35px;
-
-  margin-bottom:
-    18px;
-
-  padding:
-    16px 20px;
-
-  background:
-    white;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    12px;
-
-}
-
-
-.services-overview div {
-
-  min-width: 120px;
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.services-overview span {
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-}
-
-
-.services-overview strong {
-
-  margin-top: 3px;
-
-  font-size: 13px;
-
-}
-
-
-.table-header {
-
-  min-height: 78px;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 25px;
-
-  padding:
-    17px 20px;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-}
-
-
-.table-header h3 {
-
-  font-size: 15px;
-
-}
-
-
-.table-header p {
-
-  margin-top: 3px;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-}
-
-
-.search {
-
-  width: 210px;
-
-  min-height: 36px;
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  padding:
-    0 10px;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    8px;
-
-  background:
-    #fafafa;
-
-}
-
-
-.search span {
-
-  color:
-    #999;
-
-}
-
-
-.search input {
-
-  width: 100%;
-
-  border: 0;
-
-  background:
-    transparent;
-
-  color:
-    var(--text);
-
-  font-size: 9px;
-
-}
-
-
-.service-table-head,
-.service-item {
-
-  display: grid;
-
-  grid-template-columns:
-    minmax(220px, 1.6fr)
-    110px
-    110px
-    100px
-    45px;
-
-  align-items: center;
-
-  gap: 12px;
-
-}
-
-
-.service-table-head {
-
-  min-height: 37px;
-
-  padding:
-    0 20px;
-
-  background:
-    #faf9f7;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-}
-
-
-.service-table-head span {
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-  font-weight: 900;
-
-  letter-spacing:
-    .7px;
-
-}
-
-
-.service-item {
-
-  min-height: 75px;
-
-  padding:
-    0 20px;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-  font-size: 10px;
-
-}
-
-
-.service-name {
-
-  display: flex;
-
-  align-items: center;
-
-  gap: 11px;
-
-}
-
-
-.service-avatar {
-
-  width: 39px;
-  height: 39px;
-
-  flex-shrink: 0;
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius:
-    9px;
-
-  background:
-    var(--cream-soft);
-
-  color:
-    var(--brown);
-
-}
-
-
-.service-name div:last-child {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.service-name strong {
-
-  font-size: 10px;
-
-}
-
-
-.service-name span {
-
-  margin-top: 2px;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-}
-
-
-.not-defined {
-
-  color:
-    var(--muted);
-
-}
-
-
-.status {
-
-  width: fit-content;
-
-  display: inline-flex;
-
-  align-items: center;
-
-  gap: 5px;
-
-  padding:
-    5px 8px;
-
-  border-radius:
-    100px;
-
-  font-size: 7px;
-
-  font-weight: 800;
-
-}
-
-
-.active-status {
-
-  background:
-    var(--green-bg);
-
-  color:
-    var(--green);
-
-}
-
-
-.active-status i {
-
-  width: 5px;
-  height: 5px;
-
-  border-radius:
-    50%;
-
-  background:
-    var(--green);
-
-}
-
-
-.more-button {
-
-  border: 0;
-
-  background:
-    transparent;
-
-  color:
-    var(--muted);
-
-  font-weight: 900;
-
-}
-
-
-/* ==========================================
-   CLIENTES
-=========================================== */
-
-.clients-summary {
-
-  grid-template-columns:
-    repeat(3, 1fr);
-
-}
-
-
-.large-empty {
-
-  min-height: 350px;
-
-}
-
-
-/* ==========================================
-   CONFIGURAÇÕES
-=========================================== */
-
-.settings-layout {
-
-  display: grid;
-
-  grid-template-columns:
-    220px
-    minmax(0, 1fr);
-
-  gap: 15px;
-
-}
-
-
-.settings-menu {
-
-  display: grid;
-
-  align-content: start;
-
-  gap: 5px;
-
-}
-
-
-.settings-item {
-
-  width: 100%;
-
-  display: grid;
-
-  grid-template-columns:
-    28px 1fr;
-
-  align-items: center;
-
-  gap: 9px;
-
-  padding:
-    12px;
-
-  border:
-    1px solid
-    transparent;
-
-  border-radius:
-    10px;
-
-  background:
-    transparent;
-
-  text-align: left;
-
-}
-
-
-.settings-item.active {
-
-  background:
-    white;
-
-  border-color:
-    var(--border);
-
-}
-
-
-.settings-item > span {
-
-  width: 28px;
-  height: 28px;
-
-  display: grid;
-
-  place-items: center;
-
-  border-radius:
-    7px;
-
-  background:
-    #ece9e4;
-
-}
-
-
-.settings-item div {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.settings-item strong {
-
-  font-size: 9px;
-
-}
-
-
-.settings-item small {
-
-  margin-top: 2px;
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-}
-
-
-.settings-card {
-
-  overflow: hidden;
-
-}
-
-
-.settings-title {
-
-  padding:
-    20px;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
-}
-
-
-.settings-title h3 {
-
-  font-size: 15px;
-
-}
-
-
-.settings-title p {
-
-  margin-top: 4px;
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
-}
-
-
-.settings-form {
-
-  display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap: 16px;
-
-  padding: 22px;
-
-}
-
-
-.field {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.field.full {
-
-  grid-column:
-    1 / -1;
-
-}
-
-
-.field label {
-
-  margin-bottom: 6px;
-
-  color:
-    #484844;
-
-  font-size: 9px;
-
-  font-weight: 800;
-
-}
-
-
-.field label small {
-
-  margin-left: 3px;
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-  font-weight: 500;
-
-}
-
-
-.field input,
-.field select,
-.field textarea {
-
-  width: 100%;
-
-  min-height: 42px;
-
-  padding:
-    0 12px;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    8px;
-
-  background:
-    white;
-
-  color:
-    var(--text);
-
-  font-size: 10px;
-
-  transition:
-    border .18s;
-
-}
-
-
-.field textarea {
-
-  min-height: 90px;
-
-  padding-top: 11px;
-
-  resize: vertical;
-
-}
-
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-
-  border-color:
-    var(--brown-soft);
-
-}
-
-
-.settings-footer {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 20px;
-
-  padding:
-    16px 22px;
-
-  border-top:
-    1px solid
-    var(--border);
-
-  background:
-    #faf9f7;
-
-}
-
-
-.settings-footer span {
-
-  color:
-    var(--muted);
-
-  font-size: 8px;
-
+function setBlockMessage(message = "", type = "info") {
+  const box = document.getElementById("blockMessage");
+  box.textContent = message;
+  box.className = message ? `schedule-message ${type}` : "schedule-message hidden";
+}
+
+function openBlockModal() {
+  document.getElementById("blockDate").value = localISODate(agendaDate);
+  document.getElementById("blockStart").value = "";
+  document.getElementById("blockEnd").value = "";
+  document.getElementById("blockReason").value = "";
+  setBlockMessage("");
+  openModal("blockModal");
+}
+
+
+function closeBlockModal() {
+  closeModal("blockModal");
+}
+
+
+async function saveBlock() {
+  const date = document.getElementById("blockDate").value;
+  const start = document.getElementById("blockStart").value;
+  const end = document.getElementById("blockEnd").value;
+  const reason = document.getElementById("blockReason").value.trim();
+  const button = document.getElementById("saveBlockButton");
+
+  if (!date) return setBlockMessage("Escolha a data do bloqueio.", "error");
+  if (!start || !end) return setBlockMessage("Informe o horário inicial e final.", "error");
+  if (end <= start) return setBlockMessage("O horário final precisa ser depois do horário inicial.", "error");
+
+  button.disabled = true;
+  button.textContent = "Bloqueando...";
+  setBlockMessage("Salvando bloqueio...", "info");
+
+  try {
+    const professionalId = await getProfessionalId();
+
+    const { data: appointments, error: appointmentsError } = await db
+      .from("agendamentos")
+      .select("id,hora_inicio,hora_fim,status,cliente_nome")
+      .eq("profissional_id", professionalId)
+      .eq("data", date);
+
+    if (appointmentsError) throw appointmentsError;
+
+    const conflict = (appointments || []).find(item => {
+      const status = String(item.status || "").toLowerCase();
+      if (status === "cancelado") return false;
+      const appointmentStart = String(item.hora_inicio || "").slice(0,5);
+      const appointmentEnd = String(item.hora_fim || "").slice(0,5);
+      return start < appointmentEnd && end > appointmentStart;
+    });
+
+    if (conflict) {
+      setBlockMessage(
+        `Já existe um atendimento de ${String(conflict.hora_inicio).slice(0,5)} às ${String(conflict.hora_fim).slice(0,5)} para ${conflict.cliente_nome || "um cliente"}.`,
+        "error"
+      );
+      return;
+    }
+
+    const inicio = `${date}T${start}:00-03:00`;
+    const fim = `${date}T${end}:00-03:00`;
+
+    const { error } = await db.from("bloqueios").insert({
+      profissional_id: professionalId,
+      inicio,
+      fim,
+      motivo: reason || ""
+    });
+
+    if (error) throw error;
+
+    closeBlockModal();
+    await loadAgenda();
+    alert("Horário bloqueado com sucesso.");
+  } catch (error) {
+    console.error("Erro ao bloquear horário:", error);
+    setBlockMessage("Não foi possível bloquear o horário. Tente novamente.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Bloquear";
+  }
 }
 
 
@@ -2117,917 +2603,184 @@ textarea {
    MODAIS
 =========================================== */
 
-.modal-overlay {
+function openModal(id) {
 
-  position: fixed;
+  document
+    .getElementById(id)
+    .classList.add("show");
 
-  inset: 0;
 
-  z-index: 500;
-
-  display: none;
-
-  align-items: center;
-
-  justify-content: center;
-
-  padding: 20px;
-
-  background:
-    rgba(8, 8, 8, .68);
-
-  backdrop-filter:
-    blur(5px);
+  document.body
+    .classList.add("modal-open");
 
 }
 
 
-.modal-overlay.show {
+function closeModal(id) {
 
-  display: flex;
+  document
+    .getElementById(id)
+    .classList.remove("show");
+
+
+  document.body
+    .classList.remove("modal-open");
 
 }
 
 
-.modal {
+document
+  .querySelectorAll(".modal-overlay")
+  .forEach(overlay => {
 
-  width:
-    min(
-      510px,
-      100%
+    overlay.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target === overlay
+        ) {
+
+          overlay
+            .classList
+            .remove("show");
+
+          document.body
+            .classList
+            .remove("modal-open");
+
+        }
+
+      }
     );
 
-  max-height:
-    90vh;
+  });
 
-  overflow-y: auto;
 
-  background:
-    white;
+/* ESC fecha modal */
 
-  border-radius:
-    16px;
+document.addEventListener(
+  "keydown",
+  event => {
 
-  box-shadow:
-    0 35px 100px
-    rgba(0,0,0,.25);
+    if (
+      event.key === "Escape"
+    ) {
 
-  animation:
-    modalIn .18s ease;
+      document
+        .querySelectorAll(
+          ".modal-overlay.show"
+        )
+        .forEach(modal => {
 
+          modal.classList
+            .remove("show");
+
+        });
+
+
+      document.body
+        .classList
+        .remove("modal-open");
+
+    }
+
+  }
+);
+
+
+
+/* FINANCEIRO HÍBRIDO: registros manuais e agendamentos concluídos */
+let financeManualRows = [], financeAutoRows = [], financeEditingId = null;
+const financeMoney = n => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
+const financeSafe = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function financeAlert(id,msg){const el=document.getElementById(id);el.textContent=msg;el.className=msg?'service-message error':'service-message hidden';}
+function financeSelectedMonth(){const value=document.getElementById('financeMonth').value;return /^\d{4}-\d{2}$/.test(value)?value:null;}
+function financeRange(){const month=financeSelectedMonth();if(!month)throw Error('Selecione um mês válido.');const [y,m]=month.split('-').map(Number);return {start:month+'-01',end:`${y}-${String(m).padStart(2,'0')}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`};}
+async function loadFinance(){
+ financeAlert('financeError','');const target=document.getElementById('financeList');target.innerHTML='<div class="finance-empty">Carregando movimentações...</div>';
+ try{
+  const {start,end}=financeRange();const pid=await getProfessionalId();
+  const [manual,auto]=await Promise.all([
+   db.from('lancamentos_financeiros').select('id,data,tipo,descricao,valor,forma_pagamento,observacoes').gte('data',start).lte('data',end).order('data',{ascending:false}),
+   db.from('agendamentos').select('id,data,hora_inicio,cliente_nome,status,servicos(nome,preco)').eq('profissional_id',pid).eq('status','concluido').gte('data',start).lte('data',end).order('data',{ascending:false})
+  ]);
+  if(manual.error)throw manual.error;if(auto.error)throw auto.error;
+  financeManualRows=manual.data||[];financeAutoRows=auto.data||[];
+  renderFinance();
+ }catch(e){console.error(e);financeAlert('financeError','Não foi possível carregar o financeiro. Confira se o SQL foi aplicado e se seu usuário tem permissão.');target.innerHTML='<div class="finance-empty">Não foi possível consultar os lançamentos.</div>';}
 }
-
-
-.small-modal {
-
-  width:
-    min(
-      450px,
-      100%
-    );
-
+function renderFinance(){
+ const a=financeAutoRows.reduce((s,r)=>s+Number(r.servicos?.preco||0),0);
+ const r=financeManualRows.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor||0),0);
+ const d=financeManualRows.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor||0),0);
+ for(const [id,val] of [['financeAuto',a],['financeManual',r],['financeExpenses',d],['financeGross',a+r],['financeNet',a+r-d]])document.getElementById(id).textContent=financeMoney(val);
+ const filter=document.getElementById('financeTypeFilter').value;
+ const rows=[...financeAutoRows.map(x=>({...x,tipo:'automatico',descricao:x.servicos?.nome||'Atendimento concluído',valor:Number(x.servicos?.preco||0)})),...financeManualRows].filter(x=>filter==='todos'||x.tipo===filter).sort((a,b)=>b.data.localeCompare(a.data));
+ document.getElementById('financeList').innerHTML=rows.length?rows.map(x=>{
+ const manual=x.tipo!=='automatico',expense=x.tipo==='despesa';const type=manual?(expense?'Despesa':'Manual'):'Automático';
+ return `<div class="finance-entry"><div class="finance-entry-icon ${expense?'expense':''}">${expense?'↘':manual?'＋':'✂'}</div><div class="finance-entry-main"><strong>${financeSafe(x.descricao)}</strong><span>${financeSafe(x.data.split('-').reverse().join('/'))} · ${type}${x.forma_pagamento&&x.forma_pagamento!=='nao_informado'?' · '+financeSafe(x.forma_pagamento):''}</span></div><strong class="finance-entry-value ${expense?'expense':''}">${expense?'− ':'+ '}${financeMoney(x.valor)}</strong>${manual?`<div class="finance-entry-actions"><button type="button" onclick="editFinanceEntry('${x.id}')" aria-label="Editar lançamento">Editar</button><button type="button" onclick="deleteFinanceEntry('${x.id}')" aria-label="Excluir lançamento">Excluir</button></div>`:''}</div>`;
+ }).join(''):'<div class="finance-empty">Nenhuma movimentação neste período.</div>';
 }
-
-
-@keyframes modalIn {
-
-  from {
-
-    opacity: 0;
-
-    transform:
-      scale(.98)
-      translateY(5px);
-
-  }
-
-  to {
-
-    opacity: 1;
-
-    transform:
-      scale(1)
-      translateY(0);
-
-  }
-
+function openFinanceModal(id=null){
+ financeEditingId=id;document.getElementById('financeForm').reset();financeAlert('financeFormError','');
+ document.getElementById('financeModalTitle').textContent=id?'Editar lançamento':'Novo lançamento';
+ document.getElementById('financeDate').value=new Date().toLocaleDateString('en-CA');
+ if(id){const x=financeManualRows.find(x=>String(x.id)===String(id));if(!x)return;
+  document.getElementById('financeEntryType').value=x.tipo;document.getElementById('financeDescription').value=x.descricao;document.getElementById('financeAmount').value=x.valor;document.getElementById('financeDate').value=x.data;document.getElementById('financePayment').value=x.forma_pagamento||'nao_informado';document.getElementById('financeNotes').value=x.observacoes||'';
+ }
+ document.getElementById('financeModal').classList.add('show');document.body.classList.add('modal-open');
 }
-
-
-.modal-top {
-
-  display: flex;
-
-  align-items:
-    flex-start;
-
-  justify-content:
-    space-between;
-
-  gap: 20px;
-
-  padding:
-    21px 22px;
-
-  border-bottom:
-    1px solid
-    var(--border);
-
+function closeFinanceModal(){document.getElementById('financeModal').classList.remove('show');document.body.classList.remove('modal-open');financeEditingId=null;}
+function editFinanceEntry(id){openFinanceModal(id);}
+async function deleteFinanceEntry(id){
+ if(!confirm('Excluir este lançamento manual? Essa ação não poderá ser desfeita.'))return;
+ const {error}=await db.from('lancamentos_financeiros').delete().eq('id',id);
+ if(error){financeAlert('financeError','Não foi possível excluir o lançamento.');return;}await loadFinance();
 }
-
-
-.modal-top h2 {
-
-  margin-top: 4px;
-
-  font-size: 21px;
-
-  letter-spacing:
-    -.6px;
-
-}
-
-
-.modal-close {
-
-  width: 31px;
-  height: 31px;
-
-  display: grid;
-
-  place-items: center;
-
-  border: 0;
-
-  border-radius:
-    50%;
-
-  background:
-    #f0efec;
-
-  color:
-    #555;
-
-  font-size: 18px;
-
-}
-
-
-.modal-body {
-
-  padding:
-    22px;
-
-}
-
-
-.modal-body > .field {
-
-  margin-bottom:
-    15px;
-
-}
-
-
-.form-two {
-
-  display: grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap: 12px;
-
-  margin-bottom:
-    15px;
-
-}
-
-
-.money-input {
-
-  display: flex;
-
-  align-items: center;
-
-  overflow: hidden;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:
-    8px;
-
-}
-
-
-.money-input:focus-within {
-
-  border-color:
-    var(--brown-soft);
-
-}
-
-
-.money-input span {
-
-  padding-left: 12px;
-
-  color:
-    var(--muted);
-
-  font-size: 9px;
-
-  font-weight: 800;
-
-}
-
-
-.money-input input {
-
-  border: 0;
-
-}
-
-
-.toggle-row {
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content:
-    space-between;
-
-  gap: 20px;
-
-  padding:
-    13px 0 0;
-
-  border-top:
-    1px solid
-    var(--border);
-
-}
-
-
-.toggle-row div {
-
-  display: flex;
-
-  flex-direction: column;
-
-}
-
-
-.toggle-row strong {
-
-  font-size: 9px;
-
-}
-
-
-.toggle-row span {
-
-  margin-top: 2px;
-
-  color:
-    var(--muted);
-
-  font-size: 7px;
-
-}
-
-
-.toggle-row input {
-
-  width: 17px;
-  height: 17px;
-
-  accent-color:
-    var(--brown);
-
-}
-
-
-.modal-footer {
-
-  display: flex;
-
-  justify-content:
-    flex-end;
-
-  gap: 8px;
-
-  padding:
-    15px 22px;
-
-  border-top:
-    1px solid
-    var(--border);
-
-  background:
-    #faf9f7;
-
-}
-
-
-/* ==========================================
-   RESPONSIVO TABLET
-=========================================== */
-
-@media (
-  max-width: 1000px
-) {
-
-  .sidebar {
-    width: 205px;
-  }
-
-
-  .main {
-    margin-left: 205px;
-  }
-
-
-  .brand-name {
-    display: none;
-  }
-
-
-  .content-grid {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .day-panel {
-
-    grid-template-columns:
-      1fr 1fr;
-
-  }
-
-
-  .summary-grid {
-
-    grid-template-columns:
-      1fr 1fr;
-
-  }
-
-
-  .service-table-head,
-  .service-item {
-
-    grid-template-columns:
-      minmax(180px, 1fr)
-      100px
-      90px
-      40px;
-
-  }
-
-
-  .service-table-head
-  span:nth-child(3),
-  .service-item
-  > :nth-child(3) {
-
-    display: none;
-
-  }
-
-}
-
-
-/* ==========================================
-   RESPONSIVO MOBILE
-=========================================== */
-
-@media (
-  max-width: 680px
-) {
-
-  body {
-
-    padding-bottom:
-      72px;
-
-  }
-
-
-  .sidebar {
-
-    top: auto;
-
-    right: 0;
-    bottom: 0;
-
-    width: auto;
-    height: 68px;
-
-    padding:
-      6px 8px;
-
-    border-top:
-      1px solid
-      #292929;
-
-  }
-
-
-  .sidebar-brand,
-  .sidebar-label,
-  .sidebar-profile,
-  .developer {
-
-    display: none;
-
-  }
-
-
-  .sidebar-section {
-
-    display: contents;
-
-  }
-
-
-  .sidebar-nav {
-
-    display: contents;
-
-  }
-
-
-  .sidebar {
-
-    display: grid;
-
-    grid-template-columns:
-      repeat(4, 1fr);
-
-    align-items: stretch;
-
-  }
-
-
-  .nav-item {
-
-    min-height: 55px;
-
-    flex-direction:
-      column;
-
-    justify-content:
-      center;
-
-    gap: 2px;
-
-    padding:
-      4px 2px;
-
-    font-size: 8px;
-
-    text-align: center;
-
-  }
-
-
-  .nav-icon {
-
-    width: auto;
-
-    font-size: 15px;
-
-  }
-
-
-  .main {
-
-    margin-left: 0;
-
-  }
-
-
-  .topbar {
-
-    min-height: 67px;
-
-    padding:
-      0 14px;
-
-  }
-
-
-  .mobile-brand {
-
-    width: 37px;
-    height: 37px;
-
-    display: block;
-
-    overflow: hidden;
-
-    border-radius:
-      8px;
-
-  }
-
-
-  .mobile-brand img {
-
-    width: 100%;
-    height: 100%;
-
-    object-fit: cover;
-
-  }
-
-
-  .topbar-title {
-
-    flex: 1;
-
-  }
-
-
-  .topbar-title h1 {
-
-    font-size: 17px;
-
-  }
-
-
-  .system-status,
-  .notification-button {
-
-    display: none;
-
-  }
-
-
-  .page {
-
-    padding:
-      28px 13px 35px;
-
-  }
-
-
-  .welcome-row,
-  .page-intro {
-
-    align-items: stretch;
-
-    flex-direction:
-      column;
-
-    gap: 18px;
-
-  }
-
-
-  .welcome-row h2,
-  .page-intro h2 {
-
-    font-size: 29px;
-
-  }
-
-
-  .welcome-actions {
-
-    display: grid;
-
-    grid-template-columns:
-      1fr 1fr;
-
-  }
-
-
-  .summary-grid,
-  .clients-summary {
-
-    grid-template-columns:
-      1fr 1fr;
-
-  }
-
-
-  .summary-card {
-
-    min-height: 120px;
-
-    padding: 15px;
-
-  }
-
-
-  .summary-number {
-
-    font-size: 24px;
-
-  }
-
-
-  .content-grid {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .day-panel {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .card-header {
-
-    align-items:
-      flex-start;
-
-  }
-
-
-  .services-overview {
-
-    overflow-x: auto;
-
-    gap: 25px;
-
-  }
-
-
-  .services-overview div {
-
-    min-width: 100px;
-
-  }
-
-
-  .table-header {
-
-    align-items: stretch;
-
-    flex-direction:
-      column;
-
-  }
-
-
-  .search {
-
-    width: 100%;
-
-  }
-
-
-  .service-table-head {
-
-    display: none;
-
-  }
-
-
-  .service-item {
-
-    min-height: 78px;
-
-    grid-template-columns:
-      1fr auto auto;
-
-    padding:
-      12px 15px;
-
-  }
-
-
-  .service-item
-  > :nth-child(2),
-  .service-item
-  > :nth-child(3) {
-
-    display: none;
-
-  }
-
-
-  .settings-layout {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .settings-menu {
-
-    display: flex;
-
-    overflow-x: auto;
-
-  }
-
-
-  .settings-item {
-
-    min-width: 170px;
-
-  }
-
-
-  .settings-form {
-
-    grid-template-columns:
-      1fr;
-
-    padding: 17px;
-
-  }
-
-
-  .field.full {
-
-    grid-column: auto;
-
-  }
-
-
-  .settings-footer {
-
-    align-items: stretch;
-
-    flex-direction:
-      column;
-
-  }
-
-
-  .settings-footer .btn {
-
-    width: 100%;
-
-  }
-
-
-  .form-two {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .modal-overlay {
-
-    align-items:
-      flex-end;
-
-    padding: 0;
-
-  }
-
-
-  .modal,
-  .small-modal {
-
-    width: 100%;
-
-    max-height: 92vh;
-
-    border-radius:
-      18px 18px 0 0;
-
-  }
-
-
-  .modal-footer {
-
-    display: grid;
-
-    grid-template-columns:
-      1fr 1fr;
-
-  }
-
-}
-
-
-/* CELULARES MENORES */
-
-@media (
-  max-width: 420px
-) {
-
-  .welcome-actions {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .summary-grid,
-  .clients-summary {
-
-    grid-template-columns:
-      1fr;
-
-  }
-
-
-  .summary-card {
-
-    min-height: 110px;
-
-  }
-
-}
-/* FINANCEIRO E MOBILE V3 */
-.finance-toolbar{display:flex;align-items:end;gap:12px;margin-bottom:18px;flex-wrap:wrap}.finance-toolbar label,.finance-form label{display:flex;flex-direction:column;gap:7px;font-size:12px;font-weight:750;color:var(--brown)}.finance-toolbar input,.finance-form input,.finance-form select,.finance-form textarea,.finance-list-head select{min-height:46px;border:1px solid var(--border);border-radius:11px;background:#fff;padding:10px 12px;color:var(--text);font-size:14px;width:100%}.finance-hero{border-radius:22px;padding:30px;background:linear-gradient(125deg,#171310,#4b3020);color:#fff;display:flex;flex-direction:column;gap:10px;margin-bottom:14px;box-shadow:0 15px 35px #21180e22}.finance-hero span{font-size:11px;color:#e3c69f;letter-spacing:1.5px;font-weight:800}.finance-hero strong{font-size:clamp(30px,5vw,45px);letter-spacing:-1.5px}.finance-hero small{color:#d5c7b8;font-size:12px}.finance-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}.finance-stats>div{display:flex;flex-direction:column;gap:10px;padding:19px;background:#fff;border:1px solid var(--border);border-radius:16px}.finance-stats span{font-size:11px;color:var(--muted)}.finance-stats strong{font-size:clamp(17px,2vw,24px)}.finance-list-card{overflow:hidden}.finance-list-head{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:20px;border-bottom:1px solid var(--border)}.finance-list-head h3{font-size:18px}.finance-list-head p{font-size:11px;color:var(--muted);margin-top:6px}.finance-list-head select{max-width:180px}.finance-entry{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap}.finance-entry:last-child{border-bottom:0}.finance-entry-icon{width:43px;height:43px;flex:none;display:grid;place-items:center;background:#eaf6ef;color:#2c8057;border-radius:13px;font-size:19px}.finance-entry-icon.expense{background:#fff0ee;color:#a53f36}.finance-entry-main{display:flex;flex-direction:column;gap:5px;flex:1;min-width:120px}.finance-entry-main strong{font-size:13px}.finance-entry-main span{font-size:11px;color:var(--muted)}.finance-entry-value{font-size:15px;color:#2c8057;white-space:nowrap}.finance-entry-value.expense{color:#a53f36}.finance-entry-actions{display:flex;gap:6px}.finance-entry-actions button{border:1px solid var(--border);background:#fff;border-radius:9px;padding:9px;font-size:11px;font-weight:700}.finance-empty{padding:35px;text-align:center;color:var(--muted);font-size:13px}.finance-form{display:grid;gap:16px}.finance-form-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}.finance-hint{font-size:12px;line-height:1.5;color:#795d41;background:#f8f0e6;padding:12px;border-radius:10px}
-@media(max-width:1000px){.finance-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:680px){body{padding-bottom:calc(88px + env(safe-area-inset-bottom))}.sidebar{height:calc(72px + env(safe-area-inset-bottom));padding:6px 5px calc(6px + env(safe-area-inset-bottom));grid-template-columns:repeat(5,minmax(0,1fr));overflow:hidden}.sidebar .nav-item{display:none}.sidebar .nav-item[data-page="agenda"],.sidebar .nav-item[data-page="financeiro"],.sidebar .nav-item[data-page="clientes"],.sidebar .nav-item[data-page="servicos"],.sidebar .nav-item[data-page="configuracoes"]{display:flex}.sidebar .nav-item{font-size:10px;min-width:0;min-height:56px}.sidebar .nav-icon{font-size:21px}.topbar{min-height:65px}.page{padding:20px 14px 28px}.page-intro h2,.welcome-row h2{font-size:27px;line-height:1.12}.page-intro .btn{min-height:48px;width:100%}.summary-grid,.clients-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-card{min-height:120px}.summary-label{font-size:10px;letter-spacing:.3px}.summary-description{font-size:10px}.summary-number{font-size:24px}.day-stat span,.day-stat strong{font-size:12px}.agenda-client-real strong,.agenda-service-real strong{font-size:12px}.agenda-client-real span,.agenda-service-real span{font-size:10px}.agenda-action-btn{font-size:10px;min-height:40px}.finance-stats{gap:9px}.finance-stats>div{padding:14px}.finance-stats strong{font-size:18px}.finance-list-head{align-items:stretch;flex-direction:column}.finance-list-head select{max-width:none}.finance-entry{padding:14px;gap:10px}.finance-entry-main{min-width:calc(100% - 58px)}.finance-entry-value{margin-left:53px}.finance-entry-actions{margin-left:auto}.finance-entry-actions button{min-height:40px}.finance-form-pair{grid-template-columns:1fr}.finance-hero{padding:24px}.field input,.field select,.field textarea,.product-form-grid input,.product-form-grid select,.product-form-grid textarea{font-size:16px;min-height:46px}.modal{max-height:calc(92dvh - env(safe-area-inset-bottom))}.modal-footer{padding-bottom:calc(15px + env(safe-area-inset-bottom))}}
-@media(max-width:420px){.summary-grid,.clients-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.summary-card{padding:12px}.summary-number{font-size:21px}}
-/* Todos os módulos continuam acessíveis na navegação mobile */
-@media(max-width:680px){.sidebar{display:flex;align-items:center;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;gap:3px}.sidebar::-webkit-scrollbar{display:none}.sidebar .nav-item{display:flex!important;flex:0 0 68px;min-width:68px}.sidebar-section,.sidebar-nav{display:contents}.sidebar .nav-item[data-page="financeiro"]{color:var(--gold-light)}}
-
-
-/* ===== MOBILE V3 — NAVEGAÇÃO ESTÁVEL E LAYOUT COMPACTO ===== */
-@media(max-width:680px){
- html,body{max-width:100%;overflow-x:clip}
- body{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
- .app,.main{width:100%;min-width:0;max-width:100%;margin-left:0}
- .sidebar{position:fixed!important;top:auto!important;bottom:0!important;left:0!important;right:0!important;width:100%!important;height:calc(68px + env(safe-area-inset-bottom,0px))!important;display:flex!important;align-items:stretch!important;justify-content:space-around!important;gap:0!important;overflow:visible!important;padding:4px 6px calc(4px + env(safe-area-inset-bottom,0px))!important;background:#171513;z-index:110;border-top:1px solid #3d3228}
- .sidebar-brand,.sidebar-profile,.sidebar-label,.developer{display:none!important}
- .sidebar-section,.sidebar-nav{display:contents!important}
- .sidebar .nav-item{display:none!important;flex:1 1 0!important;min-width:0!important;max-width:none!important;height:60px!important;min-height:0!important;padding:5px 1px!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;gap:4px!important;border-radius:10px!important;font-size:10px!important;font-weight:700!important;white-space:nowrap;color:#b8ada1}
- .sidebar .nav-item[data-page="agenda"],.sidebar .nav-item[data-page="financeiro"],.sidebar .nav-item[data-page="clientes"],.sidebar .nav-item[data-page="servicos"]{display:flex!important}
- .sidebar .nav-icon{width:auto!important;font-size:21px!important;line-height:1!important}
- .sidebar .nav-item.active{background:#33291f!important;color:#e3c69f!important}
- .mobile-more-trigger{display:flex!important;flex:1 1 0;min-width:0;height:60px;flex-direction:column;justify-content:center;align-items:center;gap:4px;border:0;border-radius:10px;background:transparent;color:#b8ada1;font-size:10px;font-weight:700}
- .mobile-more-icon{font-size:22px;line-height:1}
- .topbar{position:sticky;top:0;min-height:64px!important;padding:8px 15px!important;gap:10px}
- .mobile-brand img{max-width:48px;max-height:48px;object-fit:contain}
- .topbar-title h1{font-size:21px!important}
- .page{padding:17px 12px 24px!important;min-width:0}
- .welcome-row,.page-intro{gap:13px!important;margin-bottom:16px!important;flex-wrap:wrap;align-items:flex-start}
- .welcome-row h2,.page-intro h2{font-size:24px!important;line-height:1.18!important;letter-spacing:-.6px!important}
- .welcome-actions{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:8px}
- .welcome-actions .btn{min-width:0;padding:8px;font-size:11px;min-height:45px;white-space:normal}
- .summary-grid,.clients-summary{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;margin-bottom:14px!important}
- .summary-card{min-width:0;min-height:110px!important;padding:12px!important;border-radius:14px!important}
- .summary-number{font-size:22px!important;overflow-wrap:anywhere}
- .summary-number.small{font-size:18px!important}
- .summary-label{font-size:9px!important;letter-spacing:.3px!important}
- .summary-description{font-size:10px!important;line-height:1.3}
- .content-grid{grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
- .day-panel{display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important;align-items:start}
- .day-card{min-width:0;padding:13px!important;border-radius:15px!important}
- .dark-card h3{font-size:17px!important}
- .day-stat{gap:8px}.day-stat span,.day-stat strong{font-size:11px!important}
- .day-stat strong{text-align:right;white-space:nowrap}
- .financial-periods{margin-top:10px!important}
- .quick-action{grid-template-columns:26px minmax(0,1fr) auto!important;gap:5px!important}
- .quick-action strong{font-size:11px!important}.quick-action small{font-size:9px!important}
- .card-header{padding:14px!important;gap:10px!important;min-height:0!important;flex-wrap:wrap}
- .agenda-real-list{padding:6px 12px 12px!important}
- .agenda-item-real{grid-template-columns:58px minmax(0,1fr) auto!important;gap:8px!important;padding:12px 0!important}
- .agenda-time-real{font-size:15px!important}
- .agenda-client-real strong,.agenda-service-real strong{font-size:12px!important}
- .agenda-status-real{font-size:9px!important}
- .agenda-actions-real{grid-column:1/-1!important;justify-content:flex-start!important}
- .agenda-action-btn{font-size:10px!important;min-height:38px!important}
- .finance-hero{padding:19px!important;border-radius:16px!important}
- .finance-hero strong{font-size:30px!important}
- .finance-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
- .finance-stats>div{padding:12px!important;min-width:0}
- .finance-stats strong{font-size:17px!important;overflow-wrap:anywhere}
- .finance-entry{gap:8px!important;padding:12px!important}
- .finance-entry-main{min-width:calc(100% - 55px)!important}
- .finance-entry-value{margin-left:0!important}
- .finance-entry-actions{width:100%;justify-content:flex-end}
- .finance-list-head{padding:14px!important}
- .service-item,.client-row-real,.reservation-row{min-width:0}
- .product-grid{grid-template-columns:1fr!important}
- .modal-overlay{z-index:180!important}
- .modal,.small-modal{max-width:100%!important;max-height:calc(94dvh - env(safe-area-inset-bottom,0px))!important;overflow-y:auto}
- .mobile-more-backdrop:not([hidden]){display:block!important;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:120}
- .mobile-more-panel:not([hidden]){display:flex!important;position:fixed;bottom:calc(68px + env(safe-area-inset-bottom,0px));left:10px;right:10px;flex-direction:column;padding:12px;background:#fff;border:1px solid #e8e6e1;border-radius:18px 18px 12px 12px;box-shadow:0 -12px 35px #0002;z-index:130}
- .mobile-more-heading{display:flex;align-items:center;justify-content:space-between;padding:7px 10px 12px;font-size:15px}
- .mobile-more-heading button{border:0;background:#f3eee8;width:32px;height:32px;border-radius:9px;font-size:23px}
- .mobile-more-panel>[data-mobile-page]{display:flex;align-items:center;gap:12px;min-height:51px;border:0;border-top:1px solid #eee;background:#fff;color:#2c251f;font-size:14px;font-weight:750;text-align:left;padding:9px 12px}
- .mobile-more-panel>[data-mobile-page] span{width:25px;color:#8d6847;font-size:20px}
- .mobile-more-panel>[data-mobile-page] b{margin-left:auto;color:#9a8c80;font-size:20px}
- body.mobile-menu-open{overflow:hidden}
-}
-@media(max-width:370px){.day-panel{grid-template-columns:1fr!important}.sidebar .nav-item,.mobile-more-trigger{font-size:9px!important}}
+document.getElementById('financeForm').addEventListener('submit',async e=>{
+ e.preventDefault();financeAlert('financeFormError','');const btn=document.getElementById('financeSaveButton');
+ const amount=Number(document.getElementById('financeAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){financeAlert('financeFormError','Informe um valor maior que zero.');return;}
+ const entry={tipo:document.getElementById('financeEntryType').value,descricao:document.getElementById('financeDescription').value.trim(),valor:amount,data:document.getElementById('financeDate').value,forma_pagamento:document.getElementById('financePayment').value,observacoes:document.getElementById('financeNotes').value.trim()};
+ if(!entry.descricao||!entry.data){financeAlert('financeFormError','Preencha descrição e data.');return;}
+ btn.disabled=true;try{
+  const result=financeEditingId?await db.from('lancamentos_financeiros').update(entry).eq('id',financeEditingId):await db.from('lancamentos_financeiros').insert(entry);
+  if(result.error)throw result.error;
+  const selected=entry.data.slice(0,7);document.getElementById('financeMonth').value=selected;closeFinanceModal();await loadFinance();
+ }catch(err){console.error(err);financeAlert('financeFormError','Erro ao salvar. Verifique as permissões do banco.');}finally{btn.disabled=false;}
+});
+document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-CA').slice(0,7);
+
+
+
+
+/* Navegação mobile: quatro atalhos fixos e menu Mais */
+(function setupMobileNavigation(){
+ const trigger=document.getElementById('mobileMoreTrigger');
+ const panel=document.getElementById('mobileMorePanel');
+ const backdrop=document.getElementById('mobileMoreBackdrop');
+ const close=document.getElementById('mobileMoreClose');
+ function toggle(open){
+   panel.hidden=!open;backdrop.hidden=!open;
+   trigger.setAttribute('aria-expanded',String(open));
+   document.body.classList.toggle('mobile-menu-open',open);
+ }
+ trigger.addEventListener('click',()=>toggle(panel.hidden));
+ close.addEventListener('click',()=>toggle(false));
+ backdrop.addEventListener('click',()=>toggle(false));
+ panel.querySelectorAll('[data-mobile-page]').forEach(button=>button.addEventListener('click',()=>{
+   toggle(false);goToPage(button.dataset.mobilePage);
+ }));
+ document.querySelectorAll('.mobile-tab').forEach(button=>button.addEventListener('click',()=>{toggle(false);goToPage(button.dataset.mobileTab);}));
+ const originalGoToPage=goToPage;
+ goToPage=function(page){originalGoToPage(page);document.querySelectorAll('.mobile-tab').forEach(button=>button.classList.toggle('active',button.dataset.mobileTab===page));trigger.classList.toggle('active',['produtos','reservas','configuracoes'].includes(page));};
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')toggle(false)});
+})();
+
+initializeAdmin();
+
+</script>
+
+</body>
+</html>
