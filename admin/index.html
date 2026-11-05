@@ -91,7 +91,18 @@
 .membership-person .membership-actions{margin-top:14px}.membership-person .membership-actions button{font-size:12px;font-weight:700;padding:10px 13px}
 @media(max-width:700px){.membership-card{padding:16px}.membership-person{padding:14px}.membership-balance{text-align:left}.membership-balance strong{font-size:19px}.membership-person-top{align-items:flex-start;flex-direction:column;gap:10px}.membership-person .membership-actions button{flex:1}.membership-card h3{font-size:17px}}
 </style>
-<style>.membership-delete-btn{color:#a12f2f!important;border-color:#e6baba!important;background:#fff8f8!important}.membership-delete-btn:hover{background:#ffebeb!important}@media(max-width:700px){.membership-person .membership-actions{display:flex;gap:8px;flex-wrap:wrap}.membership-person .membership-actions button{min-height:40px;font-size:12px}}</style></head>
+<style>.membership-delete-btn{color:#a12f2f!important;border-color:#e6baba!important;background:#fff8f8!important}.membership-delete-btn:hover{background:#ffebeb!important}@media(max-width:700px){.membership-person .membership-actions{display:flex;gap:8px;flex-wrap:wrap}.membership-person .membership-actions button{min-height:40px;font-size:12px}}</style><style>
+/* Controle de cortes: botões grandes e explicações diretas */
+.membership-cut-panel{margin:14px 0;padding:14px;border:1px solid #e2d4c5;border-radius:12px;background:#f8f3ec}
+.membership-cut-panel strong{display:block;font-size:13px;color:#35251a;margin-bottom:7px}
+.membership-cut-panel p{font-size:12px;color:#6f5b4b;line-height:1.5;margin:6px 0 12px}
+.membership-cut-actions{display:flex;flex-wrap:wrap;gap:9px}
+.membership-cut-actions button{min-height:44px;padding:10px 14px;border:1px solid #bda68e;border-radius:10px;background:white;font-weight:800;color:#4b3020;cursor:pointer}
+.membership-cut-actions button:disabled{opacity:.45;cursor:not-allowed}
+.membership-cut-actions .cut-add{background:#e9f6ed;color:#176b3c;border-color:#b6dfc4}
+.membership-cut-actions .cut-remove{background:#fff0ed;color:#8d382a;border-color:#e7c1ba}
+@media(max-width:700px){.membership-cut-actions button{flex:1;min-width:140px}}
+</style></head>
 
 <body>
 
@@ -2745,10 +2756,10 @@ async function loadFinance(){
   const {start,end}=financeRange();const pid=await getProfessionalId();
   const [manual,auto]=await Promise.all([
    db.from('lancamentos_financeiros').select('id,data,tipo,descricao,valor,forma_pagamento,observacoes').gte('data',start).lte('data',end).order('data',{ascending:false}),
-   db.from('agendamentos').select('id,data,hora_inicio,cliente_nome,status,servicos(nome,preco)').eq('profissional_id',pid).eq('status','concluido').gte('data',start).lte('data',end).order('data',{ascending:false})
+   db.from('agendamentos').select('id,data,hora_inicio,cliente_nome,status,origem_pagamento,servicos(nome,preco)').eq('profissional_id',pid).eq('status','concluido').gte('data',start).lte('data',end).order('data',{ascending:false})
   ]);
   if(manual.error)throw manual.error;if(auto.error)throw auto.error;
-  financeManualRows=manual.data||[];financeAutoRows=auto.data||[];
+  financeManualRows=manual.data||[];financeAutoRows=(auto.data||[]).filter(x=>x.origem_pagamento!=='mensalidade');
   financeReportReady=true;renderFinance();
  }catch(e){console.error(e);financeAlert('financeError','Não foi possível carregar o financeiro. Confira se o SQL foi aplicado e se seu usuário tem permissão.');target.innerHTML='<div class="finance-empty">Não foi possível consultar os lançamentos.</div>';}
 }
@@ -2851,14 +2862,14 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
 
 
 /* PLANOS MENSAIS — gestão administrativa, sem alterar agenda/financeiro */
-let membershipPlans=[],membershipAssignments=[],membershipClients=[];
+let membershipPlans=[],membershipAssignments=[],membershipClients=[],membershipReservations=[];
 const membershipEl=id=>document.getElementById(id);
 function membershipNotice(message){membershipEl('membershipMessage').textContent=message;}
 function membershipDateOffset(iso,months){const [y,m,d]=iso.split('-').map(Number);const target=new Date(Date.UTC(y,m-1+months,1));const last=new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth()+1,0)).getUTCDate();return `${target.getUTCFullYear()}-${String(target.getUTCMonth()+1).padStart(2,'0')}-${String(Math.min(d,last)).padStart(2,'0')}`;}
 function membershipToday(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function membershipClientName(id){return membershipClients.find(c=>String(c.id)===String(id))?.nome||'Cliente';}
 function resetMembershipPlan(){membershipEl('membershipPlanForm').reset();membershipEl('membershipPlanId').value='';}
-function resetMembershipAssignment(){membershipEl('membershipAssignmentForm').reset();membershipEl('membershipAssignmentId').value='';membershipEl('membershipStart').value=membershipToday();membershipEl('membershipEnd').value=membershipDateOffset(membershipToday(),1);membershipEl('membershipDueDay').value=Number(membershipToday().slice(-2));}
+function resetMembershipAssignment(){membershipEl('membershipAssignmentForm').reset();membershipEl('membershipAssignmentId').value='';membershipEl('membershipUsed').readOnly=false;membershipEl('membershipUsed').title='Cortes já utilizados antes do cadastro';membershipEl('membershipStart').value=membershipToday();membershipEl('membershipEnd').value=membershipDateOffset(membershipToday(),1);membershipEl('membershipDueDay').value=Number(membershipToday().slice(-2));}
 function openClientMembership(id){goToPage('mensalistas');loadMemberships().then(()=>{membershipEl('membershipClient').value=String(id);membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});});}
 async function loadMemberships(){
  membershipNotice('Buscando planos e mensalistas...');
@@ -2866,29 +2877,52 @@ async function loadMemberships(){
   const results=await Promise.all([
    db.from('planos_mensais').select('*').order('nome'),
    db.from('mensalidades_clientes').select('*').order('created_at',{ascending:false}),
-   db.from('clientes').select('id,nome').order('nome')
+   db.from('clientes').select('id,nome').order('nome'),
+   db.from('agendamentos').select('mensalidade_id,status').not('mensalidade_id','is',null)
   ]);
   for(const r of results)if(r.error)throw r.error;
-  membershipPlans=results[0].data||[];membershipAssignments=results[1].data||[];membershipClients=results[2].data||[];
+  membershipPlans=results[0].data||[];membershipAssignments=results[1].data||[];membershipClients=results[2].data||[];membershipReservations=results[3].data||[];
   membershipEl('membershipClient').innerHTML='<option value="">Selecione um cliente</option>'+membershipClients.map(c=>`<option value="${c.id}">${financeSafe(c.nome)}</option>`).join('');
   membershipEl('membershipPlanSelect').innerHTML='<option value="">Selecione um plano</option>'+membershipPlans.filter(p=>p.ativo).map(p=>`<option value="${p.id}">${financeSafe(p.nome)} — ${financeMoney(p.valor)} / ${p.cortes} cortes</option>`).join('');
   membershipEl('membershipPlansList').innerHTML=membershipPlans.length?membershipPlans.map(p=>`<div class="membership-row"><div><strong>${financeSafe(p.nome)}</strong><small>${financeMoney(p.valor)} · ${p.cortes} cortes · ${p.ativo?'Disponível':'Arquivado'}</small></div><div class="membership-actions"><button onclick="editMembershipPlan('${p.id}')">Editar</button><button onclick="toggleMembershipPlan('${p.id}',${!p.ativo})">${p.ativo?'Arquivar':'Reativar'}</button></div></div>`).join(''):'<p>Nenhum plano cadastrado.</p>';
   membershipEl('membershipAssignmentsList').innerHTML=membershipAssignments.length?membershipAssignments.map(a=>{
    const p=membershipPlans.find(p=>String(p.id)===String(a.plano_id));
-   const total=Number(p?.cortes||0),used=Number(a.creditos_usados||0),remaining=Math.max(0,total-used);
+   const total=Number(p?.cortes||0),used=Number(a.creditos_usados||0);
+   const reserved=membershipReservations.filter(x=>String(x.mensalidade_id)===String(a.id) && !['cancelado','concluido','faltou'].includes(String(x.status||'').toLowerCase())).length;
+   const remaining=Math.max(0,total-used-reserved);
    const expired=a.fim<membershipToday();
    const active=a.status==='ativo'&&!expired;
    const statusText=a.status==='encerrado'?'Encerrado':a.status==='suspenso'?'Suspenso':expired?'Prazo vencido':'Ativo';
    const statusClass=active?'is-active':'is-inactive';
-   return `<article class="membership-person"><div class="membership-person-top"><div><h4>${financeSafe(membershipClientName(a.cliente_id))}</h4><span class="membership-tag ${statusClass}">${statusText}</span></div><div class="membership-balance"><strong>${remaining} ${remaining===1?'corte restante':'cortes restantes'}</strong><small>de ${total} cortes do plano</small></div></div><div class="membership-progress" role="progressbar" aria-label="Cortes utilizados" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${Math.min(total,used)}"><span style="width:${total?Math.min(100,used/total*100):0}%"></span></div><p class="membership-person-details">${financeSafe(p?.nome||'Plano indisponível')} · ${used} ${used===1?'corte utilizado':'cortes utilizados'} · ${financeMoney(p?.valor||0)}</p><p class="membership-person-details">Válido de ${formatDateBR(a.inicio)} até ${formatDateBR(a.fim)} · Pagamento: dia ${a.dia_vencimento} · ${a.tipo_horario==='fixo'?'Horário fixo':'Horário flexível'}</p><div class="membership-actions"><button type="button" onclick="editMembershipAssignment('${a.id}')">Editar mensalidade</button><button type="button" onclick="closeMembershipAssignment('${a.id}')">Encerrar</button><button type="button" class="membership-delete-btn" onclick="deleteMembershipAssignment('${a.id}')">Excluir</button></div></article>`;
+   return `<article class="membership-person"><div class="membership-person-top"><div><h4>${financeSafe(membershipClientName(a.cliente_id))}</h4><span class="membership-tag ${statusClass}">${statusText}</span></div><div class="membership-balance"><strong>${remaining} ${remaining===1?'corte restante':'cortes restantes'}</strong><small>para novos agendamentos · de ${total} no plano</small></div></div><div class="membership-progress" role="progressbar" aria-label="Cortes utilizados" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${Math.min(total,used)}"><span style="width:${total?Math.min(100,used/total*100):0}%"></span></div><p class="membership-person-details">${financeSafe(p?.nome||'Plano indisponível')} · ${used} ${used===1?'corte utilizado':'cortes utilizados'} · ${reserved} ${reserved===1?'corte agendado':'cortes agendados'} · ${financeMoney(p?.valor||0)}</p><p class="membership-person-details">Válido de ${formatDateBR(a.inicio)} até ${formatDateBR(a.fim)} · Pagamento: dia ${a.dia_vencimento} · ${a.tipo_horario==='fixo'?'Horário fixo':'Horário flexível'}</p><div class="membership-cut-panel"><strong>Controlar cortes deste cliente</strong><p><b>− Retirar 1 corte:</b> quando ele já utilizou um corte. <b>+ Devolver 1 corte:</b> quando foi retirado por engano. Os cortes disponíveis nunca passam do limite do plano.</p><div class="membership-cut-actions"><button class="cut-remove" type="button" ${!active||remaining===0?'disabled':''} onclick="adjustMembershipCut('${a.id}',-1)">− Retirar 1 corte</button><button class="cut-add" type="button" ${!active||used===0?'disabled':''} onclick="adjustMembershipCut('${a.id}',1)">+ Devolver 1 corte</button></div></div><div class="membership-actions"><button type="button" onclick="editMembershipAssignment('${a.id}')">Editar mensalidade</button><button type="button" onclick="closeMembershipAssignment('${a.id}')">Encerrar</button><button type="button" class="membership-delete-btn" onclick="deleteMembershipAssignment('${a.id}')">Excluir</button></div></article>`;
   }).join(''):'<p>Nenhum mensalista cadastrado. Crie um plano e vincule um cliente acima.</p>';
   membershipNotice('Tudo pronto! Confira abaixo os planos e os cortes disponíveis de cada mensalista.');
  }catch(e){console.error(e);membershipNotice('Não foi possível carregar os mensalistas: '+(e.message||'erro de conexão')+'. Confira a conexão e as permissões do Supabase.');}
 }
+async function adjustMembershipCut(id,delta){
+ const item=membershipAssignments.find(x=>String(x.id)===String(id));
+ if(!item)return membershipNotice('Cliente não encontrado. Atualize a lista.');
+ const plan=membershipPlans.find(x=>String(x.id)===String(item.plano_id));
+ if(!plan)return membershipNotice('Plano não encontrado.');
+ const used=Number(item.creditos_usados||0), limit=Number(plan.cortes||0);
+ const next=used-delta; // delta -1 retira um corte disponível; +1 devolve
+ if(item.status!=='ativo'||item.fim<membershipToday())return membershipNotice('Esta mensalidade não está ativa.');
+ if(next<0||next>limit)return membershipNotice('Não é possível ultrapassar o limite de cortes do plano.');
+ const verb=delta<0?'Retirar um corte disponível':'Devolver um corte disponível';
+ const reason=prompt(`${verb} de ${membershipClientName(item.cliente_id)}?\n\nInforme o motivo para confirmar:`);
+ if(reason===null)return;
+ if(!reason.trim())return membershipNotice('Informe um motivo para confirmar o ajuste.');
+ const {data,error}=await db.rpc('ajustar_corte_admin',{
+   p_mensalidade_id:id,p_diferenca_utilizados:delta<0?1:-1,p_motivo:reason.trim()
+ });
+ if(error)return membershipNotice('Não foi possível ajustar cortes: '+error.message);
+ await loadMemberships();
+ membershipNotice(`${verb} realizado. Novo total de cortes utilizados: ${Number(data)}. Motivo registrado no histórico administrativo.`);
+}
 function editMembershipPlan(id){const p=membershipPlans.find(x=>String(x.id)===String(id));if(!p)return;membershipEl('membershipPlanId').value=p.id;membershipEl('membershipPlanName').value=p.nome;membershipEl('membershipPlanPrice').value=p.valor;membershipEl('membershipPlanCredits').value=p.cortes;membershipEl('membershipPlanForm').scrollIntoView({behavior:'smooth',block:'center'});}
 async function toggleMembershipPlan(id,ativo){if(!confirm(ativo?'Reativar este plano?':'Arquivar este plano? Mensalidades existentes serão mantidas.'))return;const {error}=await db.from('planos_mensais').update({ativo}).eq('id',id);if(error)return membershipNotice('Erro ao alterar plano: '+error.message);await loadMemberships();}
 membershipEl('membershipPlanForm').addEventListener('submit',async e=>{e.preventDefault();const id=membershipEl('membershipPlanId').value;const payload={nome:membershipEl('membershipPlanName').value.trim(),valor:Number(membershipEl('membershipPlanPrice').value),cortes:Number(membershipEl('membershipPlanCredits').value)};if(!payload.nome||payload.valor<0||!Number.isInteger(payload.cortes)||payload.cortes<1)return membershipNotice('Preencha um plano válido.');const result=id?await db.from('planos_mensais').update(payload).eq('id',id):await db.from('planos_mensais').insert(payload);if(result.error)return membershipNotice('Erro ao salvar plano: '+result.error.message);resetMembershipPlan();await loadMemberships();});
-function editMembershipAssignment(id){const a=membershipAssignments.find(x=>String(x.id)===String(id));if(!a)return;for(const [field,val] of [['membershipAssignmentId',a.id],['membershipClient',a.cliente_id],['membershipPlanSelect',a.plano_id],['membershipStart',a.inicio],['membershipEnd',a.fim],['membershipDueDay',a.dia_vencimento],['membershipSchedule',a.tipo_horario],['membershipUsed',a.creditos_usados],['membershipStatus',a.status]])membershipEl(field).value=val;membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});}
+function editMembershipAssignment(id){const a=membershipAssignments.find(x=>String(x.id)===String(id));if(!a)return;membershipEl('membershipUsed').readOnly=true;membershipEl('membershipUsed').title='Para ajustar os cortes use os botões Retirar ou Devolver no cartão do mensalista';for(const [field,val] of [['membershipAssignmentId',a.id],['membershipClient',a.cliente_id],['membershipPlanSelect',a.plano_id],['membershipStart',a.inicio],['membershipEnd',a.fim],['membershipDueDay',a.dia_vencimento],['membershipSchedule',a.tipo_horario],['membershipUsed',a.creditos_usados],['membershipStatus',a.status]])membershipEl(field).value=val;membershipEl('membershipAssignmentForm').scrollIntoView({behavior:'smooth',block:'center'});}
 async function closeMembershipAssignment(id){if(!confirm('Encerrar esta mensalidade? O histórico será mantido.'))return;const {error}=await db.from('mensalidades_clientes').update({status:'encerrado'}).eq('id',id);if(error)return membershipNotice('Erro: '+error.message);await loadMemberships();}
 async function deleteMembershipAssignment(id){
  const item=membershipAssignments.find(a=>String(a.id)===String(id));
@@ -2905,8 +2939,9 @@ async function deleteMembershipAssignment(id){
 membershipEl('membershipAssignmentForm').addEventListener('submit',async e=>{
  e.preventDefault();const id=membershipEl('membershipAssignmentId').value;
  const payload={cliente_id:Number(membershipEl('membershipClient').value),plano_id:membershipEl('membershipPlanSelect').value,inicio:membershipEl('membershipStart').value,fim:membershipEl('membershipEnd').value,dia_vencimento:Number(membershipEl('membershipDueDay').value),tipo_horario:membershipEl('membershipSchedule').value,creditos_usados:Number(membershipEl('membershipUsed').value),status:membershipEl('membershipStatus').value};
+ if(id)delete payload.creditos_usados; // Ajustes de cortes de mensalidades existentes são auditados pela função administrativa.
  const plan=membershipPlans.find(p=>String(p.id)===String(payload.plano_id));
- if(!payload.cliente_id||!plan||payload.fim<=payload.inicio||payload.dia_vencimento<1||payload.dia_vencimento>31||!Number.isInteger(payload.creditos_usados)||payload.creditos_usados<0||payload.creditos_usados>plan.cortes)return membershipNotice('Confira cliente, plano, datas e créditos utilizados.');
+ if(!payload.cliente_id||!plan||payload.fim<=payload.inicio||payload.dia_vencimento<1||payload.dia_vencimento>31||(!id&&(!Number.isInteger(payload.creditos_usados)||payload.creditos_usados<0||payload.creditos_usados>plan.cortes)))return membershipNotice('Confira cliente, plano, datas e créditos utilizados.');
  if(!id&&membershipAssignments.some(a=>a.cliente_id===payload.cliente_id&&a.status!=='encerrado'))return membershipNotice('Este cliente já tem mensalidade aberta. Edite a existente ou encerre-a antes.');
  const result=id?await db.from('mensalidades_clientes').update(payload).eq('id',id):await db.from('mensalidades_clientes').insert(payload);
  if(result.error)return membershipNotice('Erro ao salvar mensalista: '+result.error.message);
