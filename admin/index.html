@@ -8,71 +8,8 @@
 
   <title>Painel | Pretão do Corte</title>
 
-  <link rel="stylesheet" href="admin.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-/* FINANCEIRO HÍBRIDO: registros manuais e agendamentos concluídos */
-let financeManualRows = [], financeAutoRows = [], financeEditingId = null;
-const financeMoney = n => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
-const financeSafe = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function financeAlert(id,msg){const el=document.getElementById(id);el.textContent=msg;el.className=msg?'service-message error':'service-message hidden';}
-function financeSelectedMonth(){const value=document.getElementById('financeMonth').value;return /^\d{4}-\d{2}$/.test(value)?value:null;}
-function financeRange(){const month=financeSelectedMonth();if(!month)throw Error('Selecione um mês válido.');const [y,m]=month.split('-').map(Number);return {start:month+'-01',end:`${y}-${String(m).padStart(2,'0')}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`};}
-async function loadFinance(){
- financeAlert('financeError','');const target=document.getElementById('financeList');target.innerHTML='<div class="finance-empty">Carregando movimentações...</div>';
- try{
-  const {start,end}=financeRange();const pid=await getProfessionalId();
-  const [manual,auto]=await Promise.all([
-   db.from('lancamentos_financeiros').select('id,data,tipo,descricao,valor,forma_pagamento,observacoes').gte('data',start).lte('data',end).order('data',{ascending:false}),
-   db.from('agendamentos').select('id,data,hora_inicio,cliente_nome,status,servicos(nome,preco)').eq('profissional_id',pid).eq('status','concluido').gte('data',start).lte('data',end).order('data',{ascending:false})
-  ]);
-  if(manual.error)throw manual.error;if(auto.error)throw auto.error;
-  financeManualRows=manual.data||[];financeAutoRows=auto.data||[];
-  renderFinance();
- }catch(e){console.error(e);financeAlert('financeError','Não foi possível carregar o financeiro. Confira se o SQL foi aplicado e se seu usuário tem permissão.');target.innerHTML='<div class="finance-empty">Não foi possível consultar os lançamentos.</div>';}
-}
-function renderFinance(){
- const a=financeAutoRows.reduce((s,r)=>s+Number(r.servicos?.preco||0),0);
- const r=financeManualRows.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor||0),0);
- const d=financeManualRows.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor||0),0);
- for(const [id,val] of [['financeAuto',a],['financeManual',r],['financeExpenses',d],['financeGross',a+r],['financeNet',a+r-d]])document.getElementById(id).textContent=financeMoney(val);
- const filter=document.getElementById('financeTypeFilter').value;
- const rows=[...financeAutoRows.map(x=>({...x,tipo:'automatico',descricao:x.servicos?.nome||'Atendimento concluído',valor:Number(x.servicos?.preco||0)})),...financeManualRows].filter(x=>filter==='todos'||x.tipo===filter).sort((a,b)=>b.data.localeCompare(a.data));
- document.getElementById('financeList').innerHTML=rows.length?rows.map(x=>{
- const manual=x.tipo!=='automatico',expense=x.tipo==='despesa';const type=manual?(expense?'Despesa':'Manual'):'Automático';
- return `<div class="finance-entry"><div class="finance-entry-icon ${expense?'expense':''}">${expense?'↘':manual?'＋':'✂'}</div><div class="finance-entry-main"><strong>${financeSafe(x.descricao)}</strong><span>${financeSafe(x.data.split('-').reverse().join('/'))} · ${type}${x.forma_pagamento&&x.forma_pagamento!=='nao_informado'?' · '+financeSafe(x.forma_pagamento):''}</span></div><strong class="finance-entry-value ${expense?'expense':''}">${expense?'− ':'+ '}${financeMoney(x.valor)}</strong>${manual?`<div class="finance-entry-actions"><button type="button" onclick="editFinanceEntry('${x.id}')" aria-label="Editar lançamento">Editar</button><button type="button" onclick="deleteFinanceEntry('${x.id}')" aria-label="Excluir lançamento">Excluir</button></div>`:''}</div>`;
- }).join(''):'<div class="finance-empty">Nenhuma movimentação neste período.</div>';
-}
-function openFinanceModal(id=null){
- financeEditingId=id;document.getElementById('financeForm').reset();financeAlert('financeFormError','');
- document.getElementById('financeModalTitle').textContent=id?'Editar lançamento':'Novo lançamento';
- document.getElementById('financeDate').value=new Date().toLocaleDateString('en-CA');
- if(id){const x=financeManualRows.find(x=>String(x.id)===String(id));if(!x)return;
-  document.getElementById('financeEntryType').value=x.tipo;document.getElementById('financeDescription').value=x.descricao;document.getElementById('financeAmount').value=x.valor;document.getElementById('financeDate').value=x.data;document.getElementById('financePayment').value=x.forma_pagamento||'nao_informado';document.getElementById('financeNotes').value=x.observacoes||'';
- }
- document.getElementById('financeModal').classList.add('show');document.body.classList.add('modal-open');
-}
-function closeFinanceModal(){document.getElementById('financeModal').classList.remove('show');document.body.classList.remove('modal-open');financeEditingId=null;}
-function editFinanceEntry(id){openFinanceModal(id);}
-async function deleteFinanceEntry(id){
- if(!confirm('Excluir este lançamento manual? Essa ação não poderá ser desfeita.'))return;
- const {error}=await db.from('lancamentos_financeiros').delete().eq('id',id);
- if(error){financeAlert('financeError','Não foi possível excluir o lançamento.');return;}await loadFinance();
-}
-document.getElementById('financeForm').addEventListener('submit',async e=>{
- e.preventDefault();financeAlert('financeFormError','');const btn=document.getElementById('financeSaveButton');
- const amount=Number(document.getElementById('financeAmount').value);
- if(!Number.isFinite(amount)||amount<=0){financeAlert('financeFormError','Informe um valor maior que zero.');return;}
- const entry={tipo:document.getElementById('financeEntryType').value,descricao:document.getElementById('financeDescription').value.trim(),valor:amount,data:document.getElementById('financeDate').value,forma_pagamento:document.getElementById('financePayment').value,observacoes:document.getElementById('financeNotes').value.trim()};
- if(!entry.descricao||!entry.data){financeAlert('financeFormError','Preencha descrição e data.');return;}
- btn.disabled=true;try{
-  const result=financeEditingId?await db.from('lancamentos_financeiros').update(entry).eq('id',financeEditingId):await db.from('lancamentos_financeiros').insert(entry);
-  if(result.error)throw result.error;
-  const selected=entry.data.slice(0,7);document.getElementById('financeMonth').value=selected;closeFinanceModal();await loadFinance();
- }catch(err){console.error(err);financeAlert('financeFormError','Erro ao salvar. Verifique as permissões do banco.');}finally{btn.disabled=false;}
-});
-document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-CA').slice(0,7);
-
-</script>
+  <link rel="stylesheet" href="admin.css?v=mobile3">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     .hidden{display:none!important}
@@ -135,6 +72,7 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
     /* PRODUTOS E RESERVAS */
     .product-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.product-card{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff}.product-photo{aspect-ratio:4/3;background:#f3eee8;display:grid;place-items:center;overflow:hidden}.product-photo img{width:100%;height:100%;object-fit:cover}.product-photo span{font-size:38px}.product-body{padding:16px}.product-meta{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:800;letter-spacing:.05em}.product-body h3{margin:7px 0 5px;font-size:16px}.product-description{font-size:11px;color:var(--muted);line-height:1.5;min-height:34px}.product-price{font-size:20px;font-weight:900;color:var(--brown);margin:10px 0}.product-stock{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0 14px}.product-badge{font-size:8px;font-weight:900;text-transform:uppercase;padding:6px 8px;border-radius:100px;background:#f3eee8;color:#6b4a31}.product-badge.ok{background:#eaf6ef;color:#2c8057}.product-badge.low{background:#fff5df;color:#8a6115}.product-badge.out{background:#fff0ee;color:#8d2f24}.product-actions{display:flex;gap:7px;flex-wrap:wrap}.product-actions button{flex:1;min-width:82px}.product-empty{grid-column:1/-1}.product-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.product-form-grid .full{grid-column:1/-1}.product-form-grid label{display:block;font-size:11px;font-weight:900;margin-bottom:7px;color:#4b3020}.product-form-grid input,.product-form-grid textarea,.product-form-grid select{width:100%;box-sizing:border-box;border:1px solid #ddd0c3;border-radius:10px;padding:11px;background:#fff;color:#2f2119}.product-form-grid textarea{min-height:90px;resize:vertical}.product-preview{width:100%;max-height:230px;object-fit:contain;border-radius:12px;background:#f3eee8;margin-top:9px;display:none}.reservation-list{display:flex;flex-direction:column}.reservation-row{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(170px,1fr) 90px 110px minmax(190px,auto);gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}.reservation-row strong{display:block;font-size:11px}.reservation-row span{display:block;font-size:9px;color:var(--muted);margin-top:4px}.reservation-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.registered-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#edf7ef;color:#35613c!important;font-size:7px!important;font-weight:900}.visitor-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#f3eee8;color:#6b4a31!important;font-size:7px!important;font-weight:900}@media(max-width:900px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-row{grid-template-columns:1fr 1fr}.reservation-actions{justify-content:flex-start;grid-column:1/-1}}@media(max-width:600px){.product-grid{grid-template-columns:1fr}.product-form-grid{grid-template-columns:1fr}.product-form-grid .full{grid-column:auto}.reservation-row{grid-template-columns:1fr}}
   </style>
+<style>.mobile-more-trigger,.mobile-more-backdrop,.mobile-more-panel{display:none}</style>
 </head>
 
 <body>
@@ -269,6 +207,8 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
     </div>
 
 
+    <button type="button" class="mobile-more-trigger" id="mobileMoreTrigger" aria-label="Mais opções" aria-expanded="false" aria-controls="mobileMorePanel"><span class="mobile-more-icon">☰</span><span>Mais</span></button>
+
     <div class="sidebar-profile">
 
       <div class="profile-avatar">
@@ -299,7 +239,15 @@ document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-
        CONTEÚDO
   =========================================== -->
 
-  <main class="main">
+    <div class="mobile-more-backdrop" id="mobileMoreBackdrop" hidden></div>
+  <nav class="mobile-more-panel" id="mobileMorePanel" aria-label="Outras áreas do painel" hidden>
+    <div class="mobile-more-heading"><strong>Outras opções</strong><button type="button" id="mobileMoreClose" aria-label="Fechar menu">×</button></div>
+    <button type="button" data-mobile-page="produtos"><span>▣</span> Produtos <b>›</b></button>
+    <button type="button" data-mobile-page="reservas"><span>▤</span> Reservas <b>›</b></button>
+    <button type="button" data-mobile-page="configuracoes"><span>⚙</span> Configurações <b>›</b></button>
+  </nav>
+
+<main class="main">
 
     <!-- TOPBAR -->
 
@@ -2733,6 +2681,93 @@ document.addEventListener(
   }
 );
 
+
+
+/* FINANCEIRO HÍBRIDO: registros manuais e agendamentos concluídos */
+let financeManualRows = [], financeAutoRows = [], financeEditingId = null;
+const financeMoney = n => new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(n)||0);
+const financeSafe = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function financeAlert(id,msg){const el=document.getElementById(id);el.textContent=msg;el.className=msg?'service-message error':'service-message hidden';}
+function financeSelectedMonth(){const value=document.getElementById('financeMonth').value;return /^\d{4}-\d{2}$/.test(value)?value:null;}
+function financeRange(){const month=financeSelectedMonth();if(!month)throw Error('Selecione um mês válido.');const [y,m]=month.split('-').map(Number);return {start:month+'-01',end:`${y}-${String(m).padStart(2,'0')}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`};}
+async function loadFinance(){
+ financeAlert('financeError','');const target=document.getElementById('financeList');target.innerHTML='<div class="finance-empty">Carregando movimentações...</div>';
+ try{
+  const {start,end}=financeRange();const pid=await getProfessionalId();
+  const [manual,auto]=await Promise.all([
+   db.from('lancamentos_financeiros').select('id,data,tipo,descricao,valor,forma_pagamento,observacoes').gte('data',start).lte('data',end).order('data',{ascending:false}),
+   db.from('agendamentos').select('id,data,hora_inicio,cliente_nome,status,servicos(nome,preco)').eq('profissional_id',pid).eq('status','concluido').gte('data',start).lte('data',end).order('data',{ascending:false})
+  ]);
+  if(manual.error)throw manual.error;if(auto.error)throw auto.error;
+  financeManualRows=manual.data||[];financeAutoRows=auto.data||[];
+  renderFinance();
+ }catch(e){console.error(e);financeAlert('financeError','Não foi possível carregar o financeiro. Confira se o SQL foi aplicado e se seu usuário tem permissão.');target.innerHTML='<div class="finance-empty">Não foi possível consultar os lançamentos.</div>';}
+}
+function renderFinance(){
+ const a=financeAutoRows.reduce((s,r)=>s+Number(r.servicos?.preco||0),0);
+ const r=financeManualRows.filter(x=>x.tipo==='receita').reduce((s,x)=>s+Number(x.valor||0),0);
+ const d=financeManualRows.filter(x=>x.tipo==='despesa').reduce((s,x)=>s+Number(x.valor||0),0);
+ for(const [id,val] of [['financeAuto',a],['financeManual',r],['financeExpenses',d],['financeGross',a+r],['financeNet',a+r-d]])document.getElementById(id).textContent=financeMoney(val);
+ const filter=document.getElementById('financeTypeFilter').value;
+ const rows=[...financeAutoRows.map(x=>({...x,tipo:'automatico',descricao:x.servicos?.nome||'Atendimento concluído',valor:Number(x.servicos?.preco||0)})),...financeManualRows].filter(x=>filter==='todos'||x.tipo===filter).sort((a,b)=>b.data.localeCompare(a.data));
+ document.getElementById('financeList').innerHTML=rows.length?rows.map(x=>{
+ const manual=x.tipo!=='automatico',expense=x.tipo==='despesa';const type=manual?(expense?'Despesa':'Manual'):'Automático';
+ return `<div class="finance-entry"><div class="finance-entry-icon ${expense?'expense':''}">${expense?'↘':manual?'＋':'✂'}</div><div class="finance-entry-main"><strong>${financeSafe(x.descricao)}</strong><span>${financeSafe(x.data.split('-').reverse().join('/'))} · ${type}${x.forma_pagamento&&x.forma_pagamento!=='nao_informado'?' · '+financeSafe(x.forma_pagamento):''}</span></div><strong class="finance-entry-value ${expense?'expense':''}">${expense?'− ':'+ '}${financeMoney(x.valor)}</strong>${manual?`<div class="finance-entry-actions"><button type="button" onclick="editFinanceEntry('${x.id}')" aria-label="Editar lançamento">Editar</button><button type="button" onclick="deleteFinanceEntry('${x.id}')" aria-label="Excluir lançamento">Excluir</button></div>`:''}</div>`;
+ }).join(''):'<div class="finance-empty">Nenhuma movimentação neste período.</div>';
+}
+function openFinanceModal(id=null){
+ financeEditingId=id;document.getElementById('financeForm').reset();financeAlert('financeFormError','');
+ document.getElementById('financeModalTitle').textContent=id?'Editar lançamento':'Novo lançamento';
+ document.getElementById('financeDate').value=new Date().toLocaleDateString('en-CA');
+ if(id){const x=financeManualRows.find(x=>String(x.id)===String(id));if(!x)return;
+  document.getElementById('financeEntryType').value=x.tipo;document.getElementById('financeDescription').value=x.descricao;document.getElementById('financeAmount').value=x.valor;document.getElementById('financeDate').value=x.data;document.getElementById('financePayment').value=x.forma_pagamento||'nao_informado';document.getElementById('financeNotes').value=x.observacoes||'';
+ }
+ document.getElementById('financeModal').classList.add('show');document.body.classList.add('modal-open');
+}
+function closeFinanceModal(){document.getElementById('financeModal').classList.remove('show');document.body.classList.remove('modal-open');financeEditingId=null;}
+function editFinanceEntry(id){openFinanceModal(id);}
+async function deleteFinanceEntry(id){
+ if(!confirm('Excluir este lançamento manual? Essa ação não poderá ser desfeita.'))return;
+ const {error}=await db.from('lancamentos_financeiros').delete().eq('id',id);
+ if(error){financeAlert('financeError','Não foi possível excluir o lançamento.');return;}await loadFinance();
+}
+document.getElementById('financeForm').addEventListener('submit',async e=>{
+ e.preventDefault();financeAlert('financeFormError','');const btn=document.getElementById('financeSaveButton');
+ const amount=Number(document.getElementById('financeAmount').value);
+ if(!Number.isFinite(amount)||amount<=0){financeAlert('financeFormError','Informe um valor maior que zero.');return;}
+ const entry={tipo:document.getElementById('financeEntryType').value,descricao:document.getElementById('financeDescription').value.trim(),valor:amount,data:document.getElementById('financeDate').value,forma_pagamento:document.getElementById('financePayment').value,observacoes:document.getElementById('financeNotes').value.trim()};
+ if(!entry.descricao||!entry.data){financeAlert('financeFormError','Preencha descrição e data.');return;}
+ btn.disabled=true;try{
+  const result=financeEditingId?await db.from('lancamentos_financeiros').update(entry).eq('id',financeEditingId):await db.from('lancamentos_financeiros').insert(entry);
+  if(result.error)throw result.error;
+  const selected=entry.data.slice(0,7);document.getElementById('financeMonth').value=selected;closeFinanceModal();await loadFinance();
+ }catch(err){console.error(err);financeAlert('financeFormError','Erro ao salvar. Verifique as permissões do banco.');}finally{btn.disabled=false;}
+});
+document.getElementById('financeMonth').value=new Date().toLocaleDateString('en-CA').slice(0,7);
+
+
+
+
+/* Navegação mobile: quatro atalhos fixos e menu Mais */
+(function setupMobileNavigation(){
+ const trigger=document.getElementById('mobileMoreTrigger');
+ const panel=document.getElementById('mobileMorePanel');
+ const backdrop=document.getElementById('mobileMoreBackdrop');
+ const close=document.getElementById('mobileMoreClose');
+ function toggle(open){
+   panel.hidden=!open;backdrop.hidden=!open;
+   trigger.setAttribute('aria-expanded',String(open));
+   document.body.classList.toggle('mobile-menu-open',open);
+ }
+ trigger.addEventListener('click',()=>toggle(panel.hidden));
+ close.addEventListener('click',()=>toggle(false));
+ backdrop.addEventListener('click',()=>toggle(false));
+ panel.querySelectorAll('[data-mobile-page]').forEach(button=>button.addEventListener('click',()=>{
+   toggle(false);goToPage(button.dataset.mobilePage);
+ }));
+ document.querySelectorAll('.sidebar .nav-item').forEach(button=>button.addEventListener('click',()=>toggle(false)));
+ document.addEventListener('keydown',event=>{if(event.key==='Escape')toggle(false)});
+})();
 
 initializeAdmin();
 
