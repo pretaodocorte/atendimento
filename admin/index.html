@@ -71,6 +71,7 @@
 
     /* PRODUTOS E RESERVAS */
     .product-toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.product-card{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:#fff}.product-photo{aspect-ratio:4/3;background:#f3eee8;display:grid;place-items:center;overflow:hidden}.product-photo img{width:100%;height:100%;object-fit:cover}.product-photo span{font-size:38px}.product-body{padding:16px}.product-meta{font-size:9px;color:var(--muted);text-transform:uppercase;font-weight:800;letter-spacing:.05em}.product-body h3{margin:7px 0 5px;font-size:16px}.product-description{font-size:11px;color:var(--muted);line-height:1.5;min-height:34px}.product-price{font-size:20px;font-weight:900;color:var(--brown);margin:10px 0}.product-stock{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0 14px}.product-badge{font-size:8px;font-weight:900;text-transform:uppercase;padding:6px 8px;border-radius:100px;background:#f3eee8;color:#6b4a31}.product-badge.ok{background:#eaf6ef;color:#2c8057}.product-badge.low{background:#fff5df;color:#8a6115}.product-badge.out{background:#fff0ee;color:#8d2f24}.product-actions{display:flex;gap:7px;flex-wrap:wrap}.product-actions button{flex:1;min-width:82px}.product-empty{grid-column:1/-1}.product-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.product-form-grid .full{grid-column:1/-1}.product-form-grid label{display:block;font-size:11px;font-weight:900;margin-bottom:7px;color:#4b3020}.product-form-grid input,.product-form-grid textarea,.product-form-grid select{width:100%;box-sizing:border-box;border:1px solid #ddd0c3;border-radius:10px;padding:11px;background:#fff;color:#2f2119}.product-form-grid textarea{min-height:90px;resize:vertical}.product-preview{width:100%;max-height:230px;object-fit:contain;border-radius:12px;background:#f3eee8;margin-top:9px;display:none}.reservation-list{display:flex;flex-direction:column}.reservation-row{display:grid;grid-template-columns:minmax(180px,1.2fr) minmax(170px,1fr) 90px 110px minmax(190px,auto);gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--border)}.reservation-row strong{display:block;font-size:11px}.reservation-row span{display:block;font-size:9px;color:var(--muted);margin-top:4px}.reservation-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}.registered-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#edf7ef;color:#35613c!important;font-size:7px!important;font-weight:900}.visitor-tag{display:inline-block!important;width:max-content;margin-top:6px!important;padding:4px 7px;border-radius:100px;background:#f3eee8;color:#6b4a31!important;font-size:7px!important;font-weight:900}@media(max-width:900px){.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.reservation-row{grid-template-columns:1fr 1fr}.reservation-actions{justify-content:flex-start;grid-column:1/-1}}@media(max-width:600px){.product-grid{grid-template-columns:1fr}.product-form-grid{grid-template-columns:1fr}.product-form-grid .full{grid-column:auto}.reservation-row{grid-template-columns:1fr}}
+  .finance-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.finance-toolbar .btn{white-space:nowrap}@media(max-width:680px){.finance-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.finance-toolbar label{grid-column:1/-1}.finance-toolbar .btn{min-width:0;font-size:12px;padding:11px 6px}}
   </style>
 <style>.mobile-more-trigger,.mobile-more-backdrop,.mobile-more-panel{display:none}</style>
 </head>
@@ -813,7 +814,7 @@
 
 <section class="page" id="financeiro">
  <div class="page-intro"><div><span class="section-eyebrow">GESTÃO FINANCEIRA</span><h2>Seu financeiro, sob controle.</h2><p>Agendamentos concluídos + lançamentos manuais, sem perder o histórico.</p></div><button class="btn btn-primary" onclick="openFinanceModal()">＋ Novo lançamento</button></div>
- <div class="finance-toolbar"><label>Mês <input id="financeMonth" type="month" onchange="loadFinance()"></label><button class="btn btn-secondary" onclick="loadFinance()">↻ Atualizar</button></div>
+ <div class="finance-toolbar"><label>Mês <input id="financeMonth" type="month" onchange="loadFinance()"></label><button class="btn btn-secondary" onclick="loadFinance()">↻ Atualizar</button><button class="btn btn-secondary" type="button" onclick="exportFinancePDF()">▤ Gerar PDF</button><button class="btn btn-secondary" type="button" onclick="exportFinanceCSV()">↓ Exportar CSV</button></div>
  <div id="financeError" class="service-message hidden" role="alert"></div>
  <div class="finance-hero"><span>RESULTADO DO PERÍODO</span><strong id="financeNet">R$ 0,00</strong><small>Receitas menos despesas registradas</small></div>
  <div class="finance-stats"><div><span>Receita automática</span><strong id="financeAuto">R$ 0,00</strong></div><div><span>Receita manual</span><strong id="financeManual">R$ 0,00</strong></div><div><span>Despesas</span><strong id="financeExpenses">R$ 0,00</strong></div><div><span>Receita total</span><strong id="financeGross">R$ 0,00</strong></div></div>
@@ -2698,7 +2699,7 @@ function financeAlert(id,msg){const el=document.getElementById(id);el.textConten
 function financeSelectedMonth(){const value=document.getElementById('financeMonth').value;return /^\d{4}-\d{2}$/.test(value)?value:null;}
 function financeRange(){const month=financeSelectedMonth();if(!month)throw Error('Selecione um mês válido.');const [y,m]=month.split('-').map(Number);return {start:month+'-01',end:`${y}-${String(m).padStart(2,'0')}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`};}
 async function loadFinance(){
- financeAlert('financeError','');const target=document.getElementById('financeList');target.innerHTML='<div class="finance-empty">Carregando movimentações...</div>';
+ financeReportReady=false;financeAlert('financeError','');const target=document.getElementById('financeList');target.innerHTML='<div class="finance-empty">Carregando movimentações...</div>';
  try{
   const {start,end}=financeRange();const pid=await getProfessionalId();
   const [manual,auto]=await Promise.all([
@@ -2707,7 +2708,7 @@ async function loadFinance(){
   ]);
   if(manual.error)throw manual.error;if(auto.error)throw auto.error;
   financeManualRows=manual.data||[];financeAutoRows=auto.data||[];
-  renderFinance();
+  financeReportReady=true;renderFinance();
  }catch(e){console.error(e);financeAlert('financeError','Não foi possível carregar o financeiro. Confira se o SQL foi aplicado e se seu usuário tem permissão.');target.innerHTML='<div class="finance-empty">Não foi possível consultar os lançamentos.</div>';}
 }
 function renderFinance(){
@@ -2722,6 +2723,35 @@ function renderFinance(){
  return `<div class="finance-entry"><div class="finance-entry-icon ${expense?'expense':''}">${expense?'↘':manual?'＋':'✂'}</div><div class="finance-entry-main"><strong>${financeSafe(x.descricao)}</strong><span>${financeSafe(x.data.split('-').reverse().join('/'))} · ${type}${x.forma_pagamento&&x.forma_pagamento!=='nao_informado'?' · '+financeSafe(x.forma_pagamento):''}</span></div><strong class="finance-entry-value ${expense?'expense':''}">${expense?'− ':'+ '}${financeMoney(x.valor)}</strong>${manual?`<div class="finance-entry-actions"><button type="button" onclick="editFinanceEntry('${x.id}')" aria-label="Editar lançamento">Editar</button><button type="button" onclick="deleteFinanceEntry('${x.id}')" aria-label="Excluir lançamento">Excluir</button></div>`:''}</div>`;
  }).join(''):'<div class="finance-empty">Nenhuma movimentação neste período.</div>';
 }
+/* RELATORIOS FINANCEIROS — usam somente os dados carregados do mes selecionado. */
+let financeReportReady = false;
+function financeReportData(){
+ if(!financeReportReady || !financeSelectedMonth()) { alert('Atualize o financeiro e aguarde o carregamento do mês antes de gerar o relatório.'); return null; }
+ const month=financeSelectedMonth();
+ const rows=[...financeAutoRows.map(x=>({data:x.data,descricao:x.servicos?.nome||'Atendimento concluído',tipo:'Atendimento automático',valor:Number(x.servicos?.preco||0),forma_pagamento:'',observacoes:''})),...financeManualRows.map(x=>({data:x.data,descricao:x.descricao,tipo:x.tipo==='despesa'?'Despesa':'Receita manual',valor:Number(x.valor||0),forma_pagamento:x.forma_pagamento||'',observacoes:x.observacoes||''}))].sort((a,b)=>a.data.localeCompare(b.data));
+ const automatico=rows.filter(x=>x.tipo==='Atendimento automático').reduce((n,x)=>n+x.valor,0);
+ const manual=rows.filter(x=>x.tipo==='Receita manual').reduce((n,x)=>n+x.valor,0);
+ const despesas=rows.filter(x=>x.tipo==='Despesa').reduce((n,x)=>n+x.valor,0);
+ return {month,rows,automatico,manual,despesas,total:automatico+manual,saldo:automatico+manual-despesas};
+}
+function financeReportMonth(month){const [y,m]=month.split('-').map(Number);return new Intl.DateTimeFormat('pt-BR',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(Date.UTC(y,m-1,1)));}
+function financeReportDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(v)?v.split('-').reverse().join('/'):String(v||'');}
+function exportFinancePDF(){
+ const r=financeReportData();if(!r)return;
+ const popup=window.open('','_blank');if(!popup){alert('Permita pop-ups para abrir o relatório e salvar em PDF.');return;}
+ const esc=financeSafe;
+ const items=r.rows.map(x=>`<tr><td>${esc(financeReportDate(x.data))}</td><td>${esc(x.descricao)}</td><td>${esc(x.tipo)}</td><td>${esc(x.forma_pagamento==='nao_informado'?'':x.forma_pagamento)}</td><td class="num">${x.tipo==='Despesa'?'−':'+'} ${esc(financeMoney(x.valor))}</td></tr>`).join('');
+ const html=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fechamento ${esc(r.month)} | Pretão do Corte</title><style>*{box-sizing:border-box}body{font:13px Arial,sans-serif;color:#261c16;margin:35px}header{border-bottom:3px solid #4b3020;padding-bottom:15px;margin-bottom:22px}h1{font-size:25px;margin:0 0 6px}h2{font-size:16px;margin:28px 0 10px}.muted{color:#76685e}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #ded3c9;border-radius:9px;padding:13px}.card span{display:block;font-size:11px;color:#76685e;margin-bottom:7px}.card strong{font-size:17px}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #e5dfd8;padding:9px 6px;overflow-wrap:anywhere}th{background:#f5f0e9;font-size:11px}.num{text-align:right;white-space:nowrap}footer{margin-top:28px;color:#76685e;font-size:11px}.actions{margin-bottom:20px}.actions button{padding:11px 18px;background:#4b3020;color:#fff;border:0;border-radius:7px;cursor:pointer}@media print{body{margin:12mm}.actions{display:none}tr{break-inside:avoid}@page{size:A4;margin:12mm}}</style></head><body><div class="actions"><button onclick="window.print()">Imprimir / Salvar como PDF</button></div><header><h1>Pretão do Corte</h1><div class="muted">Relatório de fechamento mensal · ${esc(financeReportMonth(r.month))}</div></header><div class="cards"><div class="card"><span>Receita automática</span><strong>${esc(financeMoney(r.automatico))}</strong></div><div class="card"><span>Receita manual</span><strong>${esc(financeMoney(r.manual))}</strong></div><div class="card"><span>Receita total</span><strong>${esc(financeMoney(r.total))}</strong></div><div class="card"><span>Despesas registradas</span><strong>${esc(financeMoney(r.despesas))}</strong></div><div class="card"><span>Saldo do período</span><strong>${esc(financeMoney(r.saldo))}</strong></div><div class="card"><span>Movimentações</span><strong>${r.rows.length}</strong></div></div><h2>Movimentações do mês</h2><table><thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Pagamento</th><th class="num">Valor</th></tr></thead><tbody>${items||'<tr><td colspan="5">Nenhuma movimentação registrada.</td></tr>'}</tbody></table><footer>Valores baseados nos atendimentos concluídos e lançamentos manuais registrados. O saldo não representa necessariamente o lucro contábil.</footer></body></html>`;
+ popup.document.open();popup.document.write(html);popup.document.close();
+}
+function exportFinanceCSV(){
+ const r=financeReportData();if(!r)return;
+ const cell=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const lines=[['Pretão do Corte — Fechamento mensal',financeReportMonth(r.month)],['Receita automática',r.automatico.toFixed(2).replace('.',',')],['Receita manual',r.manual.toFixed(2).replace('.',',')],['Receita total',r.total.toFixed(2).replace('.',',')],['Despesas',r.despesas.toFixed(2).replace('.',',')],['Saldo',r.saldo.toFixed(2).replace('.',',')],[],['Data','Descrição','Tipo','Forma de pagamento','Valor (R$)','Observações'],...r.rows.map(x=>[financeReportDate(x.data),x.descricao,x.tipo,x.forma_pagamento,x.tipo==='Despesa'?'-'+x.valor.toFixed(2).replace('.',','):x.valor.toFixed(2).replace('.',','),x.observacoes])];
+ const csv='\uFEFF'+lines.map(line=>line.map(cell).join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));const a=document.createElement('a');a.href=url;a.download=`pretao-fechamento-${r.month}.csv`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+
 function openFinanceModal(id=null){
  financeEditingId=id;document.getElementById('financeForm').reset();financeAlert('financeFormError','');
  document.getElementById('financeModalTitle').textContent=id?'Editar lançamento':'Novo lançamento';
